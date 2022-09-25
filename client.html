@@ -1,0 +1,95 @@
+<!DOCTYPE HTML>
+
+<html>
+   <head>
+      
+      <script type = "text/javascript">
+         var ws = null;
+
+         function WebSocketTest() {
+            
+            if ("WebSocket" in window) {
+               console.log("WebSocket is supported by your Browser!");
+               
+               // Let us open a web socket
+			   //ws = new WebSocket("wss://215.148.12.6:6500/fcws");
+               ws = new WebSocket("ws://127.0.0.1:1337/stefkos");
+				
+               ws.onopen = function() {
+                  
+                  // Web Socket is connected, send data using send()
+                  ws.send("Connection opened");
+                  console.log("Message is sent: connection opened");
+               };
+				
+               ws.onmessage = function (evt) { 
+                  var received_msg = evt.data;
+                  console.log("Message is received: " + received_msg );
+               };
+				
+               ws.onclose = function() { 
+                  
+                  // websocket is closed.
+                  alert("Connection is closed..."); 
+               };
+            } else {
+              
+               // The browser doesn't support WebSocket
+               alert("WebSocket NOT supported by your Browser!");
+            }
+         }
+
+         function sendMessage()
+         {
+            var text = document.getElementById("in1").value;
+			   console.log('Text will be sent: ' + text );
+			   if( ws != null )
+			   {
+				   ws.send( text );
+			   }
+         }
+
+         function sendMessageD( type )
+         {
+			   console.log('MSG type of message to send: ' + type );
+			   if( ws != null )
+			   {
+               var sasid = document.getElementById("sasid").value
+               var msg = "";
+               if( type =='register')
+               {
+                  msg = "{\"type\":\"msg\",\"data\":{\"type\":\"request\",\"requestid\":\"fconn-req-vsuc024d-ijhhazol-trs083wd\",\"path\":\"system.library/sas/register\",\"data\":{\"authId\":\"e59317d1b4f1ed8fb397c08845130fce\",\"type\":\"open\"},\"authid\":\"e59317d1b4f1ed8fb397c08845130fce\",\"sessionid\":\"e59317d1b4f1ed8fb397c08845130fce\"}}";
+               } else if( type == 'unregister' )
+               {
+                  msg = "{'type':'msg','data':{'type':'request','requestid':'fconn-req-7gdno8qj-7mfc0hvq-b6cssmyx','path':'system.library/sas/unregister','data':{'sasid':'"+ sasid +"'},'authid':'e59317d1b4f1ed8fb397c08845'}}";
+               }
+               console.log('MSG to send: ' + msg );
+				   ws.send( msg );
+			   }
+         }
+
+      </script>
+		
+   </head>
+   
+   <body>
+         <table>
+            <tr><td>
+               SASID: <input type="input" id="sasid" value="" />
+            </td></tr>
+            <tr>
+        <td>
+         <a href = "javascript:WebSocketTest()">Run WebSocket</a>
+         <input type="input" id="in1" value="message" />
+         <input type="button" id="bt1" value="click" onclick="sendMessage();"/>
+      </td></tr>
+      <tr><td>
+         <input type="button" id="register" value="register" onclick="sendMessageD('register');"/>
+      </td></tr>
+      <tr><td>
+         <input type="button" id="unregister" value="unregister" onclick="sendMessageD('unregister');"/>
+      </td></tr>
+      </table>
+      
+   </body>
+</html>
