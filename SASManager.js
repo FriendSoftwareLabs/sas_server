@@ -119,7 +119,7 @@ module.exports = class SASManager
 				else
 				{
 					console.log("More elements: " + JSON.stringify( resp[0]) );
-					var newsas = new SAS( con, id, type );		// create SAS
+					var newsas = new SAS( con, id, type, appname );		// create SAS
 					if( newsas != null )
 					{
 						newsas.addUserSession( sessionid, authid, con, true, true );		// put authentication and connection to SAS
@@ -159,7 +159,7 @@ module.exports = class SASManager
 				else
 				{
 					console.log("More elements: " + JSON.stringify( resp[0]) );
-					var newsas = new SAS( con, id, type );		// create SAS
+					var newsas = new SAS( con, id, type, appname );		// create SAS
 					if( newsas != null )
 					{
 						newsas.addUserSession( authid, con, true, true );		// put authentication and connection to SAS
@@ -590,7 +590,11 @@ module.exports = class SASManager
 					}
 				}
 
-				entry.getSessionOwner().getConnection().sendUTF( "{'type':'client-decline','data':'" + resp[0].Name + "'}" );
+				var sasFromList = this.sasMap.get( sasid );
+				if( sasFromList != null )
+				{
+					entry.getSessionOwner().getConnection().sendUTF( "{'type':'client-decline','data':'" + resp[0].Name + "'}" );
+				}
 			}
 		} );	// get user session
 	}
@@ -667,7 +671,7 @@ module.exports = class SASManager
 	* @return {response:success,identity:<user name>}, when success, otherwise error code
     */
     
-	share( sessionid, sasid, users, message )
+	share( sessionid, sasid, userlist, message )
 	{
 		var usersProm = Database.findUserSessionByAuthID( globalAuthid );
 
@@ -695,71 +699,17 @@ module.exports = class SASManager
 					}
 				}
 
-				entry.getSessionOwner().getConnection().sendUTF( "{'type':'client-decline','data':'" + resp[0].Name + "'}" );
+				var sasFromList = this.sasMap.get( sasid );
+				if( sasFromList != null )
+				{
+					sasFromList.getSessionOwner().getConnection().sendUTF( "{'type':'client-decline','data':'" + resp[0].Name + "'}" );
+				}
 			}
 		} );	// get user session
 	}
 
 	/*
-		else if( strcmp( urlpath[ 0 ], "share" ) == 0 )
-	{
-		char *assid = NULL;
-		char *userlist = NULL;
-		char *msg = NULL;
-		char *sessid = NULL;
-		
-		struct TagItem tags[] = {
-			{ HTTP_HEADER_CONTENT_TYPE, (FULONG) StringDuplicate( "text/html" ) },
-			{ HTTP_HEADER_CONNECTION, (FULONG) StringDuplicate( "close" ) },
-			{ TAG_DONE, TAG_DONE }
-		};
-		
-		response = HttpNewSimple( HTTP_200_OK,  tags );
-		
-		HashmapElement *el =  HashmapGet( request->http_ParsedPostContent, "sasid" );
-		if( el != NULL )
-		{
-			assid = UrlDecodeToMem( ( char *)el->hme_Data );
-		}
-		
-		SASSession *as = NULL;
-		char applicationName[ 1024 ];
-		applicationName[ 0 ] = 0;
-		
-		if( assid != NULL )
-		{
-			char *end;
-			FUQUAD asval = strtoul( assid,  &end, 0 );
-			DEBUG("[SASWebRequest] ASSID %s endptr-startp %d\n", assid, (int)(end-assid) );
-			
-			as = SASManagerGetSession( l->sl_SASManager, asval );
-		}
-		
-		SQLLibrary *sqllib  = l->LibrarySQLGet( l );
-		if( sqllib != NULL )
-		{
-			//
-			// we must get application name to send it with invitation
-			//
 
-			char q[ 1024 ];
-			if( as != NULL )
-			{
-				sqllib->SNPrintF( sqllib, q, sizeof(q), "SELECT `Name` FROM `FUserApplication` ua, `FApplication` a  WHERE ua.AuthID=\"%s\" and ua.ApplicationID = a.ID LIMIT 1",( char *)as->sas_AuthID );
-
-				void *res = sqllib->Query( sqllib, q );
-				if( res != NULL )
-				{
-					char **row;
-					if( ( row = sqllib->FetchRow( sqllib, res ) ) )
-					{
-						strcpy( applicationName, row[ 0 ] );
-					}
-					sqllib->FreeResult( sqllib, res );
-				}
-			}
-			l->LibrarySQLDrop( l, sqllib );
-		}
 		
 		if( as == NULL  )
 		{
@@ -912,6 +862,64 @@ module.exports = class SASManager
 
 
 
+	/*
+		if( assid != NULL && msg != NULL )
+		{
+			char *end;
+			FUQUAD asval = strtoull( assid,  &end, 0 );
+			SASSession *as = SASManagerGetSession( l->sl_SASManager, asval );
+			
+			if( as != NULL )
+			{
+				if( FRIEND_MUTEX_LOCK( &loggedSession->us_Mutex ) == 0 )
+				{
+					loggedSession->us_InUseCounter++;
+					FRIEND_MUTEX_UNLOCK( &loggedSession->us_Mutex );
+				}
+				
+				int err = 0;
+				if( as->sas_Type == SAS_TYPE_OPEN )
+				{
+					err = SASSessionSendMessage( as, loggedSession, msg, strlen( msg ), NULL );
+				}
+				else
+				{
+					err = SASSessionSendMessage( as, loggedSession, msg, strlen( msg ), usernames );
+				}
+				if( err > 0 )
+				{
+					int size = sprintf( buffer, "{\"response\":\"success\"}" );
+					HttpAddTextContent( response, buffer );
+				}
+				else
+				{
+					char dictmsgbuf[ 256 ];
+					char dictmsgbuf1[ 196 ];
+					snprintf( dictmsgbuf1, sizeof(dictmsgbuf1), l->sl_Dictionary->d_Msg[DICT_CANNOT_SEND_MSG_ERR], err );
+					snprintf( dictmsgbuf, sizeof(dictmsgbuf), "{\"response\":\"%s\",\"code\":\"%d\"}", dictmsgbuf1 , DICT_CANNOT_SEND_MSG_ERR );
+					HttpAddTextContent( response, dictmsgbuf );
+				}
+				
+				if( as->sas_Obsolete == TRUE )
+				{
+					int err = SASManagerRemSession( l->sl_SASManager, as );
+				}
+				
+				if( FRIEND_MUTEX_LOCK( &loggedSession->us_Mutex ) == 0 )
+				{
+					loggedSession->us_InUseCounter--;
+					FRIEND_MUTEX_UNLOCK( &loggedSession->us_Mutex );
+				}
+			}
+			else
+			{
+				char dictmsgbuf[ 256 ];
+				snprintf( dictmsgbuf, sizeof(dictmsgbuf), "{\"response\":\"%s\",\"code\":\"%d\"}", l->sl_Dictionary->d_Msg[DICT_SASID_NOT_FOUND] , DICT_SASID_NOT_FOUND );
+				HttpAddTextContent( response, dictmsgbuf );
+			}
+		}
+	*/
+
 
 
     /**
@@ -926,12 +934,31 @@ module.exports = class SASManager
     */
     
 
+	sendowner( sessionid, sasid, val, valid, mode )
+	{
+		var usersProm = Database.findUserSessionBySessionID( sessionid );
 
+		console.log("putvar: " + usersProm );
+		usersProm.then((resp) => {
+	
+			if( resp.length > 0 )	// authid exist, user is authenticated to do something with SAS
+			{
+				con.sendUTF( "{'response':'permission denied','code':''}" );
+				return;
+			}
+	
+			if( sasid != null )
+			{
+				var sasFromList = this.sasMap.get( sasid );
+				if( sasFromList != null )
+				{
+					sasFromList.getSessionOwner().getConnection().sendUTF( "{'type':'client-decline','data':'" + resp[0].Name + "'}" );
+				}
 
-
-
-
-
+				con.sendUTF( "{'VariableNumber':" + valid + "}" );
+			}
+		} );	// get user session
+	}
 
 
     /**
@@ -941,14 +968,10 @@ module.exports = class SASManager
 	* @param sessionid - (required) session id of logged user
 	* @param sasid - (required ) shared session id
 	* @param username - (required) user name which will take over of SAS
-	* @param deviceid - (required) deviceid of user device which will take over SAS
-
 	* @return {response:success}, when success, otherwise error code
     */
     
-
-
-
+    // WE DONt NEED IT, ITS NOT IN USE
 
     /**
 	* 
@@ -960,11 +983,8 @@ module.exports = class SASManager
 
 	* @return {response:success}, when success, otherwise error code
     */
-    
 
-
-
-
+	// WE DONt NEED IT, ITS NOT IN USE
 
     /**
 	* 
@@ -972,17 +992,142 @@ module.exports = class SASManager
 	*
 	* @param sessionid - (required) session id of logged user
 	* @param sasid - (required ) shared session id
-	* @param var - (required) variable which will be stored in SAS
-	* @param varid - variable ID, if not provided new will be created. Otherwise updated
+	* @param val - (required) variable which will be stored in SAS
+	* @param valid - variable ID, if not provided new will be created. Otherwise updated
 	* @param mode - set to "private" if you want to have private variable. Otherwise it will be public
 	* @return {VariableNumber:<number>}, when number > 0 then variable was created/updated. Otherwise error number will be returned
     */
     
+	putvar( sessionid, sasid, val, valid, mode )
+	{
+		var usersProm = Database.findUserSessionBySessionID( sessionid );
+
+		console.log("putvar: " + usersProm );
+		usersProm.then((resp) => {
+	
+			if( resp.length > 0 )	// authid exist, user is authenticated to do something with SAS
+			{
+				con.sendUTF( "{'response':'permission denied','code':''}" );
+				return;
+			}
+	
+			if( sasid != null )
+			{
+				var sasFromList = this.sasMap.get( sasid );
+				if( sasFromList != null )
+				{
+					sasFromList.putVariable( valid, val );
+				}
+
+				con.sendUTF( "{'VariableNumber':" + valid + "}" );
+			}
+		} );	// get user session
+	}
 
 
-
-
-
+/*
+		if( assid != NULL )
+		{
+			char *end;
+			FUQUAD asval = strtoull( assid,  &end, 0 );
+			SASSession *as = SASManagerGetSession( l->sl_SASManager, asval );
+			
+			if( as != NULL )
+			{
+				INVAREntry *le = NULL;
+				
+				// trying to find existing variable, because ID was passed
+				
+				FRIEND_MUTEX_LOCK( &as->sas_VariablesMut );
+				if( varid != NULL )
+				{
+					FULONG varidlong = strtoull( varid,  &end, 0 );
+			
+					le = as->sas_Variables;
+					while( le != NULL )
+					{
+						if( le->ne_ID == varidlong )
+						{
+							break;
+						}
+						le = (INVAREntry *) le->node.mln_Succ;
+					}
+				}
+				
+				if( FRIEND_MUTEX_LOCK( &loggedSession->us_Mutex ) == 0 )
+				{
+					loggedSession->us_InUseCounter++;
+					FRIEND_MUTEX_UNLOCK( &loggedSession->us_Mutex );
+				}
+			
+				// if entry exist we just update data
+				// otherwise we create new entry
+			
+				if( le != NULL )
+				{
+					FBOOL canchange = FALSE;
+					
+					if( le->ne_SpecialData != NULL )
+					{
+						if( le->ne_SpecialData == loggedSession->us_User )
+						{
+							canchange = TRUE;
+						}
+					}
+					else
+					{
+						canchange = TRUE;
+					}
+					
+					if( canchange == TRUE )
+					{
+						DEBUG("[SASWebRequest] Old entry changed\n");
+						if( le->ne_Data != NULL )
+						{
+							FFree( le->ne_Data );
+						}
+						le->ne_Data = var;
+					}
+				}
+				else
+				{
+					INVAREntry *ne = INVAREntryNew( as->sas_VariablesNumGenerator++, NULL, NULL );
+					if( ne != NULL )
+					{
+						DEBUG("[SASWebRequest] New entry added\n");
+						ne->ne_Data = var;
+						le = ne;
+						
+						if( priv == TRUE )
+						{
+							le->ne_SpecialData = loggedSession->us_User;
+						}
+						
+						le->node.mln_Succ = (MinNode *) as->sas_Variables;
+						as->sas_Variables = le;
+					}
+				}
+				
+				if( FRIEND_MUTEX_LOCK( &loggedSession->us_Mutex ) == 0 )
+				{
+					loggedSession->us_InUseCounter--;
+					FRIEND_MUTEX_UNLOCK( &loggedSession->us_Mutex );
+				}
+				
+				FRIEND_MUTEX_UNLOCK( &as->sas_VariablesMut );
+				
+				if( le != NULL )
+				{
+					int size = sprintf( buffer, "{\"VariableNumber\":\"%lu\"}", le->ne_ID );
+					HttpAddTextContent( response, buffer );
+				}
+				else
+				{
+					int size = sprintf( buffer, "{\"VariableNumber\":\"%d\"}", -1 );
+					HttpAddTextContent( response, buffer );
+				}
+			}
+	*/
 
 
     /**
@@ -995,4 +1140,117 @@ module.exports = class SASManager
 	* @return {VariableData:<data>} when success, otherwise error with code
 	*/
 
+	getvar( sessionid, sasid, valid )
+	{
+		var usersProm = Database.findUserSessionBySessionID( sessionid );
+
+		console.log("putvar: " + usersProm );
+		usersProm.then((resp) => {
+	
+			if( resp.length > 0 )	// authid exist, user is authenticated to do something with SAS
+			{
+				con.sendUTF( "{'response':'permission denied','code':''}" );
+				return;
+			}
+	
+			if( sasid != null )
+			{
+				var sasFromList = this.sasMap.get( sasid );
+				var retVal = null;
+
+				if( sasFromList != null )
+				{
+					retVal = sasFromList.getVariable( valid );
+				}
+
+				if( retVal == null )
+				{
+					con.sendUTF( "{'VariableData': '' }" );
+				}
+				else
+				{
+					con.sendUTF( "{'VariableData':" + retVal + "}" );
+				}
+			}
+		} );	// get user session
+	}
+
+	/*
+
+		if( assid != NULL && varid != NULL )
+		{
+			char *end;
+			FUQUAD asval = strtoull( assid,  &end, 0 );
+			SASSession *as = SASManagerGetSession( l->sl_SASManager, asval );
+			
+			if( FRIEND_MUTEX_LOCK( &loggedSession->us_Mutex ) == 0 )
+			{
+				loggedSession->us_InUseCounter++;
+				FRIEND_MUTEX_UNLOCK( &loggedSession->us_Mutex );
+			}
+			
+			if( as != NULL )
+			{
+				INVAREntry *le = NULL;
+				
+				// trying to find existing variable, because ID was passed
+				
+				if( FRIEND_MUTEX_LOCK( &as->sas_VariablesMut ) == 0 )
+				{
+					if( varid != NULL )
+					{
+						FULONG varidlong = strtoull( varid,  &end, 0 );
+			
+						le = as->sas_Variables;
+						while( le != NULL )
+						{
+							if( le->ne_ID == varidlong )
+							{
+								break;
+							}
+							le = (INVAREntry *) le->node.mln_Succ;
+						}
+					}
+					FRIEND_MUTEX_UNLOCK( &as->sas_VariablesMut );
+				}
+				
+				if( le != NULL )
+				{
+					FBOOL canread = FALSE;
+					
+					if( le->ne_SpecialData != NULL )
+					{
+						if( le->ne_SpecialData == loggedSession->us_User )
+						{
+							canread = TRUE;
+						}
+					}
+					else
+					{
+						canread = TRUE;
+					}
+					
+					if( canread == TRUE )
+					{
+						char *tmpresp = FCalloc( strlen( le->ne_Data ) + 100, sizeof(char) );
+						if( tmpresp != NULL )
+						{
+							int size = sprintf( tmpresp, "{\"VariableData\":\"%s\"}", le->ne_Data );
+							HttpSetContent( response, tmpresp, size );
+						}
+					}
+					else
+					{
+						char dictmsgbuf[ 256 ];
+						snprintf( dictmsgbuf, sizeof(dictmsgbuf), "{\"response\":\"%s\",\"code\":\"%d\"}", l->sl_Dictionary->d_Msg[DICT_NO_ACCESS_TO_VARIABLE] , DICT_NO_ACCESS_TO_VARIABLE );
+						HttpAddTextContent( response, dictmsgbuf );
+					}
+				}
+				else
+				{
+					int size = sprintf( buffer, "{\"VariableData\":\"\"}" );
+					HttpAddTextContent( response, buffer );
+				}
+
+	*/
 }

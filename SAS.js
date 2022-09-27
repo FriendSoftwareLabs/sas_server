@@ -9,13 +9,16 @@ const UserSession = require('./UserSession.js');
 
 module.exports = class SAS 
 {
-    constructor( con, id, type ) 
+    constructor( con, id, type, appname ) 
     {
         this.wsConnection = con;        // SAS WebSocket connection
         this.ID = id;                   // SAS ID
         this.type = type;               // SAS type
         this.sessionList = new Map();   // list of sessions in SAS
         this.sessionOwner = null;       // session owner
+        this.appname = appname;         // application name
+
+        this.varMap = new Map();        // variable map
 
         //us = new UserSession();
         //this.sessionList.add( us );
@@ -40,6 +43,26 @@ module.exports = class SAS
     getSessionOwner()
     {
         return this.sessionOwner;
+    }
+
+    getAppname()
+    {
+        return this.appname;
+    }
+
+    getVariableMap()
+    {
+        return this.varMap;
+    }
+
+    getVariable( val )
+    {
+        return this.varMap.get( val );
+    }
+
+    putVariable( val, string )
+    {
+        this.varMap[ val ] = string;
     }
 
     //

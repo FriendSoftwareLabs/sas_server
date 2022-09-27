@@ -17,7 +17,7 @@ module.exports = class Database
 	} 
   
     //
-	  //
+	  // Find users by sessionid
 	  //
 
 	  static findUserSessionBySessionID(sessionid ) {
@@ -53,8 +53,45 @@ module.exports = class Database
         });
     }
 
-  //
     //
+    // Find sessions and servers to which they belongs
+    //
+
+    static findServersAndSessionsBySessionID(sessionid ) {
+      return new Promise(async (resolve) => {
+        console.log('findServersAndSessionsBySessionID');
+        try
+    {
+            let sql;
+            sql = 'SELECT us.SessionID,cn.Address FROM `FUserSession` us inner join FClusterNode cn on us.FCID=cn.FCID';
+            //sql += 'SessionID= ?';
+            console.log('Looking for Data : ' + database );
+            const data = await database.query(sql, [`${sessionid}%`]);
+
+            console.log('findServersAndSessionsBySessionID: ' + data);
+
+            var retData = [{}];
+
+            data.forEach(function (item, index) {
+                //console.log('row ' + JSON.stringify(item), JSON.stringify(index) );
+                item.forEach(function (litem, lindex) {
+                    retData[ lindex ] =  JSON.stringify(litem);
+                    console.log('in table: ' + JSON.stringify(retData[ lindex ]) );
+                    //console.log('row ' + JSON.stringify(litem), JSON.stringify(lindex) );
+                  });
+              });
+            return resolve(retData);	// data
+        }
+    catch (err) 
+    {
+            console.error(err);
+            return resolve(null);
+        }
+      });
+  }
+
+    //
+    // Find users by authid
     //
 
     static findUserSessionByAuthID( authid ) {
