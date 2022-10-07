@@ -54,14 +54,51 @@
 			   console.log('MSG type of message to send: ' + type );
 			   if( ws != null )
 			   {
-               var sasid = document.getElementById("sasid").value
-               var msg = "";
+               var sasid = document.getElementById("sasid").value;
+			   var sessionid = 'c7fdba3278838c85cc4c62b48b3d6478693a2983';	// user stefkos, ID 3
+			   var sessionid1 = '8cace301cd8e6a41d76b38e3e2b40ceec8285fa4';	// user jacek, ID 4
+			   var authid = 'abcd';
+			   var varid = 1;
+			   var username = 'jacek';
+               var msg = "{\"type\":\"msg\",\"data\":{\"type\":\"request\",\"requestid\":\"fconn-req-vsuc024d-ijhhazol-trs083wd\",\"path\":\"system.library/sas/";
+			   var sndmsg = "hello";
+			   var usernames = "jacek,placek";
+			   var force = false;
+			   
+			   // share
+			   var userlist = "jacek,stefkos";
+			   var sharemessage = "msg";
+			   
                if( type =='register')
                {
-                  msg = "{\"type\":\"msg\",\"data\":{\"type\":\"request\",\"requestid\":\"fconn-req-vsuc024d-ijhhazol-trs083wd\",\"path\":\"system.library/sas/register\",\"data\":{\"authId\":\"e59317d1b4f1ed8fb397c08845130fce\",\"type\":\"open\"},\"authid\":\"e59317d1b4f1ed8fb397c08845130fce\",\"sessionid\":\"e59317d1b4f1ed8fb397c08845130fce\"}}";
+                  msg += "register\",\"data\":{\"authid\":\""+authid+"\"},\"authid\":\""+authid+"\",\"username\":\"" + username +"\",\"sessionid\":\"" + sessionid +"\",\"stype\":\"open\"}}";
                } else if( type == 'unregister' )
                {
-                  msg = "{'type':'msg','data':{'type':'request','requestid':'fconn-req-7gdno8qj-7mfc0hvq-b6cssmyx','path':'system.library/sas/unregister','data':{'sasid':'"+ sasid +"'},'authid':'e59317d1b4f1ed8fb397c08845'}}";
+                  msg += "unregister\",\"data\":{\"sasid\":\""+ sasid +"\",\"sessionid\":\""+ sessionid +"\"},\"authid\":\""+authid+"\"}}";
+               } else if( type == 'share' )
+               {
+                  msg += "share\",\"data\":{},\"authid\":\""+authid+"\",\"sasid\":\""+ sasid +"\",\"sessionid\":\""+ sessionid +"\",\"userlist\":\""+ userlist +"\",\"message\":\""+ sharemessage +"\"}}";
+               } else if( type == 'unshare' )
+               {
+                  msg += "unshare\",\"data\":{},\"authid\":\""+authid+"\",\"sasid\":\""+ sasid +"\",\"sessionid\":\""+ sessionid +"\,\"userlist\":\""+ userlist +"\"}}";
+               }else if( type == 'accept' )
+               {
+                  msg += "accept\",\"data\":{},\"authid\":\""+authid+"\",\"sasid\":\""+ sasid +"\",\"sessionid\":\""+ sessionid +"\",\"username\":\""+ username +"\",\"force\":"+ force +"}}";
+               } else if( type == 'decline' )
+               {
+                  msg += "decline\",\"data\":{},\"authid\":\""+authid+"\",\"sasid\":\""+ sasid +"\",\"sessionid\":\""+ sessionid +"\"}}";
+               } else if( type == 'send' )
+               {
+                  msg += "send\",\"data\":{},\"authid\":\""+authid+"\",\"sasid\":\""+ sasid +"\",\"sessionid\":\""+ sessionid +"\",\"msg\":\""+ sndmsg +"\",\"usernames\":\""+ usernames +"\"}}";
+               } else if( type == 'sendowner' )
+               {
+                  msg += "sendowner\",\"data\":{},\"authid\":\""+authid+"\",\"sasid\":\""+ sasid +"\",\"sessionid\":\""+ sessionid +"\",\"msg\":\""+ sndmsg +"\"}}";
+               } else if( type == 'getvar' )
+               {
+                  msg += "getvar\",\"data\":{},\"authid\":\""+authid+"\",\"sasid\":\""+ sasid +"\",\"sessionid\":\""+ sessionid +"\",\"varid\":"+ varid +"}}";
+               } else if( type == 'putvar' )
+               {
+                  msg += "putvar\",\"data\":{},\"authid\":\""+authid+"\",\"sasid\":\""+ sasid +"\",\"varid\":"+ varid +",\"var\":\"vardata\",\"sessionid\":\""+ sessionid +"\"}}";
                }
                console.log('MSG to send: ' + msg );
 				   ws.send( msg );
@@ -88,6 +125,30 @@
       </td></tr>
       <tr><td>
          <input type="button" id="unregister" value="unregister" onclick="sendMessageD('unregister');"/>
+      </td></tr>
+	  <tr><td>
+         <input type="button" id="share" value="share" onclick="sendMessageD('share');"/>
+      </td></tr>
+	  <tr><td>
+         <input type="button" id="unshare" value="unshare" onclick="sendMessageD('unshare');"/>
+      </td></tr>
+	  <tr><td>
+         <input type="button" id="accept" value="accept" onclick="sendMessageD('accept');"/>
+      </td></tr>
+	  <tr><td>
+         <input type="button" id="decline" value="decline" onclick="sendMessageD('decline');"/>
+      </td></tr>
+	  <tr><td>
+         <input type="button" id="send" value="send" onclick="sendMessageD('send');"/>
+      </td></tr>
+	  <tr><td>
+         <input type="button" id="sendowner" value="sendowner" onclick="sendMessageD('sendowner');"/>
+      </td></tr>
+	  <tr><td>
+         <input type="button" id="getvar" value="getvar" onclick="sendMessageD('getvar');"/>
+      </td></tr>
+	  <tr><td>
+         <input type="button" id="putvar" value="putvar" onclick="sendMessageD('putvar');"/>
       </td></tr>
       </table>
       

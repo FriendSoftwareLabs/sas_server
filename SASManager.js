@@ -12,6 +12,7 @@ var mysql = require('promise-mysql2');
 const Database = require('./Database.js');
 const UserSession = require('./UserSession.js');
 const { isGeneratorFunction } = require('util/types');
+const friendos = require('./friendos.js');
 
 let globalAuthid = '5d0e8579f3dec0477449c1d004f3c089';
 
@@ -39,7 +40,7 @@ module.exports = class SASManager
 	*
 	* @param con - (required) websocket connection
 	* @param sessionid - (required) session id of logged user
-	* @param authid - (required) authentication id (provided by application)
+	* @param username - (required) user name
 	* @param type - type of application session 'close'(default), 'open' for everyone
 	* @param sasid - if passed then it will be used to join already created SAS
 	* @param force - if set to true then session is created no mather what
@@ -48,10 +49,11 @@ module.exports = class SASManager
 	* @return { SASID: <number> } when success, otherwise response with error code
     */
     
-   register( con, sessionid, authid, type, sasid, force, appname )
+   register( con, sessionid, username, type, sasid, force, appname )
    {
        this.globalID++;
        var id = this.globalID;
+	   var sid = '' + id;
 
 	   // we set default value
 	   if( force == undefined )
@@ -59,11 +61,11 @@ module.exports = class SASManager
 		   force = false;
 	   }
 
-	   console.log( "response in promise, con : " + con + " authid " + authid + " type " + type + " sasid " + sasid + " force " + force );
+	   console.log( "response in promise, con : " + con + " username " + username + " type " + type + " sasid " + sasid + " force " + force );
 
-	   if( authid == null )
+	   if( username == null )
 	   {
-		   con.sendUTF( "{'response':'authid parameter is missing','code':'14'}" );
+		   con.sendUTF( "{'response':'username parameter is missing','code':'14'}" );
 		   return;
 	   }
 
@@ -72,15 +74,15 @@ module.exports = class SASManager
 		   sasid = null;
 	   }
        
-	   //var usersProm = Database.findUserSessionByAuthID( authid );
-	   var usersProm = Database.findUserSessionByAuthID( globalAuthid );
+		var usersProm = Database.findUserSessionBySessionID( sessionid );
+		//var usersProm = Database.findUserSessionByAuthID( globalAuthid );
 
-	   console.log("users: " + usersProm );
-	   usersProm.then((resp) => {
+		console.log("users: " + usersProm );
+		usersProm.then((resp) => {
 
-		console.log( "response in promise, found objects " + resp.length + " con : " + con + " authid " + authid + " type " + type + " sasid " + sasid + " force " + force );
+		console.log( "response in promise, found objects " + resp.length + " con : " + con + " username " + username + " type " + type + " sasid " + sasid + " force " + force );
 
-		if( resp.length > 0 )	// authid exist, user is authenticated to do something with SAS
+		if( resp.length > 0 )	// username exist, user is authenticated to do something with SAS
 		{
 			console.log( " resp.length > 0, sasid " + sasid );
 			if( sasid != null )
@@ -91,24 +93,24 @@ module.exports = class SASManager
 				{
 					if( sasFromList.type == 'open' )
 					{
-						var sasEntry = sasFromList.getUserSession( authid );
+						var sasEntry = sasFromList.getUserSession( sessionid );
 						if( sasEntry == null )
 						{
-							sasFromList.addUserSession( sessionid, authid, con, true, true );	// session exist so we only add 
+							sasFromList.addUserSession( sessionid, username, 1, con, true, true );	// session exist so we only add 
 						}
-						con.sendUTF( "{'type':'client-accept','data':'"+ authid +"'}" );
+						con.sendUTF( "{'type':'client-accept','data':'"+ sessionid +"'}" );
 					}
 					else	// connection was created by someone and its marked as "closed" so user have to ask admin for access
 					{
 						// if session exit only force argument can recreate it
 						if( force == true  )
 						{
-							var sasEntry = sasFromList.getUserSession( authid );
+							var sasEntry = sasFromList.getUserSession( sessionid );
 							if( sasEntry == null )
 							{
-								sasFromList.addUserSession( sessionid, authid, con, true, false );	// session exist so we only add 
+								sasFromList.addUserSession( sessionid, username, 1, con, true, false );	// session exist so we only add 
 							}
-							con.sendUTF( "{'type':'client-accept','data':'"+ authid +"'}" );
+							con.sendUTF( "{'type':'client-accept','data':'"+ username +"'}" );
 						}
 						else
 						{
@@ -119,15 +121,15 @@ module.exports = class SASManager
 				else
 				{
 					console.log("More elements: " + JSON.stringify( resp[0]) );
-					var newsas = new SAS( con, id, type, appname );		// create SAS
+					var newsas = new SAS( con, sid, type, appname );		// create SAS
 					if( newsas != null )
 					{
-						newsas.addUserSession( sessionid, authid, con, true, true );		// put authentication and connection to SAS
+						newsas.addUserSession( sessionid, username, 1, con, true, true );		// put authentication and connection to SAS
 
-						this.sasMap.add( id, newsas );				// add new SAS to global list
+						this.sasMap.add( newsas, sid );				// add new SAS to global list
 					}
 
-					con.sendUTF( "{'SASID':" + id + ",'type':" + type + "}" );
+					con.sendUTF( "{'SASID':" + sid + ",'type':" + type + "}" );
 				}
 			}	// sasid = null
 			else
@@ -139,38 +141,41 @@ module.exports = class SASManager
 				{
 					if( sasFromList.type == 'open' )
 					{
-						var sasEntry = sasFromList.getUserSession( authid );
+						var sasEntry = sasFromList.getUserSession( sessionid );
 						if( sasEntry == null )
 						{
-							sasFromList.addUserSession( authid, con, true, true );	// session exist so we only add 
+							sasFromList.addUserSession( sessionid, username, 1, con, true, true );	// session exist so we only add 
 						}
-						con.sendUTF( "{'type':'client-accept','data':'"+ authid +"'}" );
+						con.sendUTF( "{'type':'client-accept','data':'"+ sessionid +"'}" );
 					}
 					else	// connection was created by someone and its marked as "closed" so user have to ask admin for access
 					{
-						var sasEntry = sasFromList.getUserSession( authid );
+						var sasEntry = sasFromList.getUserSession( sessionid );
 						if( sasEntry == null )
 						{
-							sasFromList.addUserSession( authid, con, true, false );	// session exist so we only add 
+							sasFromList.addUserSession( sessionid, username, 1, con, true, false );	// session exist so we only add 
 						}
-						con.sendUTF( "{'type':'client-accept','data':'"+ authid +"'}" );
+						con.sendUTF( "{'type':'client-accept','data':'"+ sessionid +"'}" );
 					}
 				}
 				else
 				{
 					console.log("More elements: " + JSON.stringify( resp[0]) );
-					var newsas = new SAS( con, id, type, appname );		// create SAS
+					var newsas = new SAS( con, sid, type, appname );		// create SAS
 					if( newsas != null )
 					{
-						newsas.addUserSession( authid, con, true, true );		// put authentication and connection to SAS
+						newsas.addUserSession( sessionid, username, 1, con, true, true );		// put authentication and connection to SAS
 
-						this.sasMap.add( id, newsas );				// add new SAS to global list
+						this.sasMap.add( newsas, sid );				// add new SAS to global list
+
 					}
 
-					con.sendUTF( "{'SASID':" + id + ",'type':" + type + "}" );
+					con.sendUTF( "{'SASID':" + sid + ",'type':" + type + "}" );
 				}
 				//con.sendUTF( "{'error': 3}" );
 			}
+
+			console.log(" SAS created ID: " + sid + " number of entries " + this.sasMap.length );
 		}
 		else	// authid was not found in DB
 		{
@@ -185,18 +190,20 @@ module.exports = class SASManager
    *
    * <HR><H2>system.library/app/unregister</H2>Unregister Application Shared Session
    *
-   * @param authid - (required) authentication id used by logged user
+   * @param con - (required) websocket connection
+   * @param sessionid - (required) session id used by logged user
    * @param sasid - (required) shared session id which will be removed
 
    * @return {SASID:<number>} when success, otherwise error code
    */
    
-   unregister( con, authid, sasid )
-   {
-	var usersProm = Database.findUserSessionByAuthID( globalAuthid );
+   	unregister( con, sessionid, sasid )
+   	{
+		var usersProm = Database.findUserSessionBySessionID( sessionid );
+		//var usersProm = Database.findUserSessionByAuthID( globalAuthid );
 
-	console.log("unregister: " + usersProm );
-	usersProm.then((resp) => {
+		console.log("unregister: " + usersProm );
+		usersProm.then((resp) => {
 
 		if( resp.length <= 0 )	// authid exist, user is authenticated to do something with SAS
 		{
@@ -213,10 +220,10 @@ module.exports = class SASManager
 				{
 					// if there is entry we remove it
 					// if its last entry we remove whole SAS
-					var sasEntry = sasFromList.getUserSession( authid );
+					var sasEntry = sasFromList.getUserSession( sessionid );
 					if( sasEntry != null )
 					{
-						sasFromList.removeUserSession( authid );
+						sasFromList.removeUserSession( sessionid );
 					}
 					
 					if( sasFromList.getConnectionNumber() <= 0 )
@@ -229,7 +236,7 @@ module.exports = class SASManager
 				else	// closed SAS
 				{
 					// we are trying to get user first, if he will be admin then he will be able to delete SAS
-					var sasEntry = sasFromList.getUserSession( authid );
+					var sasEntry = sasFromList.getUserSession( sessionid );
 					if( sasEntry != null )
 					{
 						if( sasEntry.isAdmin() )
@@ -376,23 +383,25 @@ module.exports = class SASManager
 	*
 	* <HR><H2>system.library/app/accept</H2>Accept invitation from assid owner
 	*
+	* @param con - (required) websocket connection
 	* @param sessionid - (required) session id of logged user
 	* @param sasid - (required if authid is not provided) shared session id
-	* @param authid - (required if sasid is not provided) application authentication id
+	* @param usernmae - (required if sasid is not provided) application authentication id
 	* @param force - force to create SAS
 
 	* @return {response:success,identity:<user name>}, when success, otherwise error code
     */
     
 
-	accept( sessionid, sasid, authid, force )
+	accept( con, sessionid, sasid, username, force )
 	{
-		var usersProm = Database.findUserSessionByAuthID( globalAuthid );
+		var usersProm = Database.findUserSessionBySessionID( sessionid );
+		//var usersProm = Database.findUserSessionByAuthID( globalAuthid );
 
 		console.log("unregister: " + usersProm );
 		usersProm.then((resp) => {
 	
-			if( resp.length > 0 )	// authid exist, user is authenticated to do something with SAS
+			if( resp.length > 0 )	// username exist, user is authenticated to do something with SAS
 			{
 				con.sendUTF( "{'response':'permission denied','code':''}" );
 				return;
@@ -405,20 +414,8 @@ module.exports = class SASManager
 				{
 					if( sasFromList.type == 'open' )
 					{
-						// if there is entry we remove it
-						// if its last entry we remove whole SAS
-						var us = sasFromList.getUserSession( authid );
-						if( us == null )
-						{
-							sasFromList.addUserSession( authid, con, true, false );	// session exist so we only add 
-						}
-						else
-						{
-							if( !us.isAccepted() )
-							{
-								us.setAccepted( true );
-							}
-						}
+						// add user session already control if user can be added to list (his sessions)
+						sasFromList.addUserSession( sessionid, username, con, true, false );	// session exist so we only add 
 
 						for (var entry in sasFromList )
 						{
@@ -429,19 +426,10 @@ module.exports = class SASManager
 					}
 					else	// closed SAS
 					{
+						sasFromList.addUserSession( sessionid, username, con, true, false );	// session exist so we only add 
 
-						for (var entry in sasFromList )
-						{
-							if( entry.getSessionid() == sessionid )
-							{
-								if( !entry.isAccepted() )
-								{
-									entry.setAccepted( true );
-								}
+						sasFromList.getSessionOwner().getConnection().sendUTF( "{'type':'client-accept','data':'" + us.getUsername() + "'}" );
 
-								entry.getSessionOwner().getConnection().sendUTF( "{'type':'client-accept','data':'" + resp[0].Name + "'}" );
-							}
-						}
 /*
 					SASUList *li = as->sas_UserSessionList;
 		
@@ -493,9 +481,9 @@ module.exports = class SASManager
 						var newsas = new SAS( con, id, type );		// create SAS
 						if( newsas != null )
 						{
-							newsas.addUserSession( sessionid, authid, con, true, true );		// put authentication and connection to SAS
+							newsas.addUserSession( sessionid, username, authid, con, true, true );		// put authentication and connection to SAS
 	
-							this.sasMap.add( id, newsas );				// add new SAS to global list
+							this.sasMap.add( newsas, id );				// add new SAS to global list
 						}
 	
 						con.sendUTF( "{'SASID':" + id + ",'type':" + type + "}" );
@@ -556,14 +544,16 @@ module.exports = class SASManager
 	* 
 	* <HR><H2>system.library/app/decline</H2>Decline invitation from assid owner
 	*
+	* @param con - (required) websocket connection
 	* @param sessionid - (required) session id of logged user
 	* @param sasid - (required) shared session id
 
 	* @return {response:success,identity:<user name>}, when success, otherwise error code
     */
     
-	decline( sessionid, sasid )
+	decline( con, sessionid, sasid )
 	{
+		//var usersProm = Database.findUserSessionBySessionID( sessionid );
 		var usersProm = Database.findUserSessionByAuthID( globalAuthid );
 
 		console.log("unregister: " + usersProm );
@@ -593,7 +583,7 @@ module.exports = class SASManager
 				var sasFromList = this.sasMap.get( sasid );
 				if( sasFromList != null )
 				{
-					entry.getSessionOwner().getConnection().sendUTF( "{'type':'client-decline','data':'" + resp[0].Name + "'}" );
+					sasFromList.getSessionOwner().getConnection().sendUTF( "{'type':'client-decline','data':'" + resp[0].Name + "'}" );
 				}
 			}
 		} );	// get user session
@@ -663,6 +653,7 @@ module.exports = class SASManager
 	* 
 	* <HR><H2>system.library/app/share</H2>Share your Application Shared Session with other users
 	*
+	* @param con - (required) websocket connection
 	* @param sessionid - (required) session id of logged user
 	* @param sasid - (required ) shared session id
 	* @param users - (required) users which we want to invite to Shared Application Session. Function expect user names separated by comma
@@ -671,40 +662,76 @@ module.exports = class SASManager
 	* @return {response:success,identity:<user name>}, when success, otherwise error code
     */
     
-	share( sessionid, sasid, userlist, message )
+	share( con, sessionid, sasid, userlist, message )
 	{
-		var usersProm = Database.findUserSessionByAuthID( globalAuthid );
+		var usersProm = Database.findUserSessionBySessionID( sessionid );
+		//var usersProm = Database.findUserSessionByAuthID( globalAuthid );
 
 		console.log("unregister: " + usersProm );
 		usersProm.then((resp) => {
-	
-			if( resp.length > 0 )	// authid exist, user is authenticated to do something with SAS
+			console.log("share: response " + resp );
+			if( resp.length < 1 )	// authid exist, user is authenticated to do something with SAS
 			{
 				con.sendUTF( "{'response':'permission denied','code':''}" );
 				return;
 			}
+
+			var resp = "{'response':[";
 	
 			if( sasid != null )
 			{
-
-				//
-				// Go through all user sessions, compare sessionid and remove it from SAS
-				//
-
-				for (var session in this.sasMap )
-				{
-					if( session.getSessionid() == sessionid )
-					{
-						this.sasMap.remove();
-					}
-				}
-
 				var sasFromList = this.sasMap.get( sasid );
 				if( sasFromList != null )
 				{
-					sasFromList.getSessionOwner().getConnection().sendUTF( "{'type':'client-decline','data':'" + resp[0].Name + "'}" );
+
+					//
+					// We have to add users to list
+					// List contain names of users which can join SAS
+					//
+
+					var arrayOfNames = userlist.split(",");
+					for( var usr of arrayOfNames )
+					{
+						console.log(" add " + usr );
+						sasFromList.addInvatedUsers( usr );
+					}
+
+					// maybe we should make a list of users based on massages send to user session
+
+					resp += userlist;
+
+					//
+					// Get user sessions and check to which server they are assigned
+					// Send call to the server with SAS message about invitation
+					//
+
+					var serversAndSessions = Database.findServersAndSessionsBySessionID( userlist );
+					serversAndSessions.then((resp1) => {
+						console.log("share: findServersAndSessionsBySessionID: response " + resp1 );
+
+						let sessionOwner = sasFromList.getSessionOwner();
+						let inviteMsg = "{'type':'msg','data':{'type':'sasid-request','data':{'sasid':"+ sasid +",'message':'"+ message +"','owner':'"+ sessionOwner.getUsername() +"','appname':'"+ sasFromList.getAppname() +"'}}}";
+						let inviteMsgEnc = inviteMsg.toString('base64');
+
+						for( let session of resp1 )
+						{
+							console.log('session ' + session );
+							for( let ent of session )
+							{
+								console.log('ent ' + ent.SessionID + ' Address ' + ent.Address );
+								if( ent.SessionID != null && ent.Address != null )	// we have to be sure that address and session exist
+								{
+									var fos = new friendos( ent.Address );
+									fos.sendRequest( 'system.library/user/servermessage', 'sessionid='+ent.SessionID + '&message='+ inviteMsgEnc +'&usernames=jacek', null  )
+								}
+							}
+						}
+
+					} );
 				}
 			}
+			resp += "]}";
+			con.sendUTF( resp );
 		} );	// get user session
 	}
 
@@ -795,40 +822,7 @@ module.exports = class SASManager
 					snprintf( dictmsgbuf, sizeof(dictmsgbuf), "{\"response\":\"%s\",\"code\":\"%d\"}", l->sl_Dictionary->d_Msg[DICT_CANNOT_ADD_USERS] , DICT_CANNOT_ADD_USERS );
 					HttpAddTextContent( response, dictmsgbuf );
 				}
-				
-				if( FRIEND_MUTEX_LOCK( &loggedSession->us_Mutex ) == 0 )
-				{
-					loggedSession->us_InUseCounter--;
-					FRIEND_MUTEX_UNLOCK( &loggedSession->us_Mutex );
-				}
-			}
-		}
-		else
-		{
-			char dictmsgbuf[ 256 ];
-			char dictmsgbuf1[ 196 ];
-			snprintf( dictmsgbuf1, sizeof(dictmsgbuf1), l->sl_Dictionary->d_Msg[DICT_PARAMETERS_MISSING], "users" );
-			snprintf( dictmsgbuf, sizeof(dictmsgbuf), "{\"response\":\"%s\",\"code\":\"%d\"}", dictmsgbuf1 , DICT_PARAMETERS_MISSING );
-			HttpAddTextContent( response, dictmsgbuf );
-			FERROR("users parameter is missing!\n");
-		}
-		
-		if( sessid != NULL )
-		{
-			FFree( sessid );
-		}
-		if( msg != NULL )
-		{
-			FFree( msg );
-		}
-		if( assid != NULL )
-		{
-			FFree( assid );
-		}
-		if( userlist != NULL )
-		{
-			FFree( userlist );
-		}
+
 	*/
 
 
@@ -836,6 +830,7 @@ module.exports = class SASManager
 	* 
 	* <HR><H2>system.library/app/unshare</H2>Unshare your Application Shared Session. Terminate
 	*
+	* @param con - (required) websocket connection
 	* @param sessionid - (required) session id of logged user
 	* @param sasid - (required ) shared session id
 	* @param users - (required) users which we want to remove from Shared Application Session. Function expect user names separated by comma
@@ -844,13 +839,134 @@ module.exports = class SASManager
     */
     
 
+	unshare( con, sessionid, sasid, users )
+	{
+		var usersProm = Database.findUserSessionBySessionID( sessionid );
 
+		console.log("send: " + usersProm );
+		usersProm.then((resp) => {
+	
+		if( resp.length < 1 )	// authid exist, user is authenticated to do something with SAS
+		{
+			con.sendUTF( "{'response':'permission denied','code':''}" );
+			return;
+		}
 
+		var resp = "{'response':[";
+	
+		if( sasid != null )
+		{
+			// maybe we should make a list of users based on massages send to user session
+
+			resp += users;
+
+			var sasFromList = this.sasMap.get( sasid );
+			if( sasFromList != null )
+			{
+				// if users provided then remove only this people otherwise remove all
+
+				if( users == null )
+				{
+					// admin
+					if( sessionid == sasFromList.getSessionOwner().getSessionid() )
+					{
+						for (var session in sasFromList.getSessionlist().values() )
+						{
+							let locmsg = "{'type':'msg','data':{'type':'"+ sasFromList.getSessionOwner().getSessionid() +"', 'data':{'type':'"+ sasFromList.getID() +"','data':{'identity':{'username':'"+ sasFromList.getSessionOwner().getUsername() +"'},'data':{'type':'sasid-close','data':'"+ session.getUsername() +"'}}}}}";
+
+							console.log("send (all): trying to send message to session " + session.getUsername() );
+							session.getConnection().sendUTF( locmsg );
+						}
+
+						for (var session in sasFromList.getSessionlist().values() )
+						{
+							console.log(" remove " + session.getSessionid() );
+							sasFromList.removeUserSession( session );
+						}
+					}
+					else
+					{
+						// do not allow people who are not admins to unshare SAS
+					}
+				}
+				else
+				{
+					// if you are admin of this SAS
+
+					if( sessionid == sasFromList.getSessionOwner().getSessionid() )
+					{
+						for (var session in sasFromList.getSessionlist().values() )
+						{
+							for( var usr of arrayOfNames )
+							{
+								if( usr == session.getUsername() )
+								{
+									let locmsg = "{'type':'msg','data':{'type':'"+ sasFromList.getSessionOwner().getSessionid() +"', 'data':{'type':'"+ sasFromList.getID() +"','data':{'identity':{'username':'"+ sasFromList.getSessionOwner().getUsername() +"'},'data':{'type':'sasid-close','data':'"+ session.getUsername() +"'}}}}}";
+
+									console.log("send (all): trying to send message to session " + session.getUsername() );
+									session.getConnection().sendUTF( locmsg );
+								}
+							}
+						}
+
+						var arrayOfNames = users.split(",");
+							
+						for( var usr of arrayOfNames )
+						{
+							console.log(" remove " + usr );
+							sasFromList.removeUserSessionByUsername( usr );
+						}
+					}
+					else
+					{
+						// do not allow people who are not admins to unshare SAS
+					}
+				}
+			}
+		}
+		resp += "]}";
+		con.sendUTF( resp );
+
+		} );	// get user session
+	}
+
+	/*
+		if( rementr != NULL )
+	{
+		char tmp[ 1024 ];
+		int msgsndsize = 0;
+		
+		if( adminSession != NULL )
+		{
+			asul = as->sas_UserSessionList;
+			while( asul != NULL )
+			{
+				int len = sprintf( tmp, "{\"type\":\"msg\",\"data\": { \"type\":\"%s\", \"data\":{\"type\":\"%lu\", \"data\":{ \"identity\":{\"username\":\"%s\"},\"data\": {\"type\":\"sasid-close\",\"data\":\"%s\"}}}}}", asul->authid, as->sas_SASID,  loggedSession->us_User->u_Name, asul->usersession->us_User->u_Name );
+				msgsndsize += WebSocketSendMessageInt( asul->usersession, tmp, len );
+			
+				asul = (SASUList *) asul->node.mln_Succ;
+			}
+		}
+		else
+		{
+			for( i=0 ; i < rementrnum ; i++ )
+			{
+				DEBUG("[SASSessionRemUserByNames] authid %s sasid %lu userptr %p usersessptr %p usersessuser ptr %p\n", rementr[ i ]->authid, as->sas_SASID,  loggedSession->us_User, rementr[ i ]->usersession, rementr[ i ]->usersession->us_User );
+				int len = sprintf( tmp, "{\"type\":\"msg\",\"data\": { \"type\":\"%s\", \"data\":{\"type\":\"%lu\", \"data\":{ \"identity\":{\"username\":\"%s\"},\"data\": {\"type\":\"sasid-close\",\"data\":\"%s\"}}}}}", rementr[ i ]->authid, as->sas_SASID,  loggedSession->us_User->u_Name, rementr[ i ]->usersession->us_User->u_Name );
+				msgsndsize += WebSocketSendMessageInt( rementr[ i ]->usersession, tmp, len );
+			
+				SASSessionRemUserSession( as, rementr[ i ]->usersession );
+			}
+		}
+		FFree( rementr );
+	}
+	*/
 
     /**
 	* 
 	* <HR><H2>system.library/app/send</H2>Send message to other users (not owner of sas)
 	*
+	* @param con - (required) websocket connection
 	* @param sessionid - (required) session id of logged user
 	* @param sasid - (required ) shared session id
 	* @param usernames - users to which we want to send message. Function expect user names separated by comma
@@ -859,7 +975,59 @@ module.exports = class SASManager
 	* @return {response:success}, when success, otherwise error code
 	*/
 
+	send( con, sessionid, sasid, usernames, msg )
+	{
+		var usersProm = Database.findUserSessionBySessionID( sessionid );
 
+		console.log("send: " + usersProm );
+		usersProm.then((resp) => {
+	
+			if( resp.length < 1 )	// authid exist, user is authenticated to do something with SAS
+			{
+				con.sendUTF( "{'response':'permission denied','code':''}" );
+				return;
+			}
+	
+			if( sasid != null )
+			{
+				var sasFromList = this.sasMap.get( sasid );
+
+				console.log("send " + sasid + " sasfromlist " + sasFromList + " usernames " + usernames );
+
+				if( sasFromList != null )
+				{
+					if( usernames == null )
+					{
+						for (var session in sasFromList.getSessionlist().values() )
+						{
+							console.log("send (all): trying to send message to session " + session.getUsername() );
+							session.getConnection().sendUTF( msg );
+						}
+					}
+					else
+					{
+						var arrayOfNames = usernames.split(",");
+						console.log("send: going to send message to " + usernames + " array of names length " + arrayOfNames.length + " values " + sasFromList.getSessionlist().values()  );
+						for (let session of sasFromList.getSessionlist().values() )
+						{
+							console.log("send: trying to send message to session " + session.getUsername() );
+							for( let uname of arrayOfNames )
+							{
+								console.log("send: trying to send message to " + uname );
+								if( session.getUsername() == uname  )
+								{
+									console.log("sending message: " +msg + " to user " + uname );
+									session.getConnection().sendUTF( msg );
+								}
+							}
+						}
+					}
+				}
+
+				con.sendUTF( "{'response':'success'}" );
+			}
+		} );	// get user session
+	}
 
 
 	/*
@@ -920,12 +1088,11 @@ module.exports = class SASManager
 		}
 	*/
 
-
-
     /**
 	* 
 	* <HR><H2>system.library/app/sendowner</H2>Send message to SAS owner
 	*
+	* @param con - (required) websocket connection
 	* @param sessionid - (required) session id of logged user
 	* @param sasid - (required ) shared session id
 	* @param msg - (required) message which we will be send
@@ -934,14 +1101,14 @@ module.exports = class SASManager
     */
     
 
-	sendowner( sessionid, sasid, val, valid, mode )
+	sendowner( con, sessionid, sasid, msg )
 	{
 		var usersProm = Database.findUserSessionBySessionID( sessionid );
 
 		console.log("putvar: " + usersProm );
 		usersProm.then((resp) => {
 	
-			if( resp.length > 0 )	// authid exist, user is authenticated to do something with SAS
+			if( resp.length < 1 )	// authid exist, user is authenticated to do something with SAS
 			{
 				con.sendUTF( "{'response':'permission denied','code':''}" );
 				return;
@@ -950,12 +1117,22 @@ module.exports = class SASManager
 			if( sasid != null )
 			{
 				var sasFromList = this.sasMap.get( sasid );
+
+				console.log("sendowner " + sasid + " sasfromlist " + sasFromList );
+
 				if( sasFromList != null )
 				{
-					sasFromList.getSessionOwner().getConnection().sendUTF( "{'type':'client-decline','data':'" + resp[0].Name + "'}" );
+					if( sasFromList.getSessionOwner() != null && sasFromList.getSessionOwner().getConnection() != null )
+					{
+						sasFromList.getSessionOwner().getConnection().sendUTF( msg );
+					}
+					else
+					{
+						console.log("Cannot send message there is no owner or his connection is broken");
+					}
 				}
 
-				con.sendUTF( "{'VariableNumber':" + valid + "}" );
+				con.sendUTF( "{'response':'success'}" );
 			}
 		} );	// get user session
 	}
@@ -990,6 +1167,7 @@ module.exports = class SASManager
 	* 
 	* <HR><H2>system.library/app/putvar</H2>Put variable into Application Session
 	*
+	* @param con - (required) websocket connection
 	* @param sessionid - (required) session id of logged user
 	* @param sasid - (required ) shared session id
 	* @param val - (required) variable which will be stored in SAS
@@ -998,14 +1176,14 @@ module.exports = class SASManager
 	* @return {VariableNumber:<number>}, when number > 0 then variable was created/updated. Otherwise error number will be returned
     */
     
-	putvar( sessionid, sasid, val, valid, mode )
+	putvar( con, sessionid, sasid, val, valid, mode )
 	{
 		var usersProm = Database.findUserSessionBySessionID( sessionid );
 
 		console.log("putvar: " + usersProm );
 		usersProm.then((resp) => {
 	
-			if( resp.length > 0 )	// authid exist, user is authenticated to do something with SAS
+			if( resp.length < 1 )	// authid exist, user is authenticated to do something with SAS
 			{
 				con.sendUTF( "{'response':'permission denied','code':''}" );
 				return;
@@ -1016,10 +1194,19 @@ module.exports = class SASManager
 				var sasFromList = this.sasMap.get( sasid );
 				if( sasFromList != null )
 				{
+					console.log("putvar: sas found");
 					sasFromList.putVariable( valid, val );
-				}
 
-				con.sendUTF( "{'VariableNumber':" + valid + "}" );
+					con.sendUTF( "{'VariableNumber':" + valid + "}" );
+				}
+				else
+				{
+					con.sendUTF( "{'error':'SAS not found'}" );
+				}
+			}
+			else
+			{
+				con.sendUTF( "{'error':'sasid parameter is missing'}" );
 			}
 		} );	// get user session
 	}
@@ -1134,20 +1321,21 @@ module.exports = class SASManager
 	* 
 	* <HR><H2>system.library/app/getvar</H2>Get variable from Application Session
 	*
+	* @param con - (required) websocket connection
 	* @param sessionid - (required) session id of logged user
 	* @param sasid - (required ) shared session id
 	* @param varid - variable ID from which data will be taken
 	* @return {VariableData:<data>} when success, otherwise error with code
 	*/
 
-	getvar( sessionid, sasid, valid )
+	getvar( con, sessionid, sasid, valid )
 	{
 		var usersProm = Database.findUserSessionBySessionID( sessionid );
 
-		console.log("putvar: " + usersProm );
+		console.log("getvar: " + usersProm );
 		usersProm.then((resp) => {
 	
-			if( resp.length > 0 )	// authid exist, user is authenticated to do something with SAS
+			if( resp.length < 1 )	// authid exist, user is authenticated to do something with SAS
 			{
 				con.sendUTF( "{'response':'permission denied','code':''}" );
 				return;
@@ -1158,9 +1346,12 @@ module.exports = class SASManager
 				var sasFromList = this.sasMap.get( sasid );
 				var retVal = null;
 
+				console.log("was sas found " + sasFromList + " for sasid " + sasid + " sasmape entries " + this.sasMap.length );
+
 				if( sasFromList != null )
 				{
 					retVal = sasFromList.getVariable( valid );
+					console.log("getvar " + valid + ' retVal ' + retVal );
 				}
 
 				if( retVal == null )
@@ -1169,8 +1360,12 @@ module.exports = class SASManager
 				}
 				else
 				{
-					con.sendUTF( "{'VariableData':" + retVal + "}" );
+					con.sendUTF( "{'VariableData':'" + retVal + "'}" );
 				}
+			}
+			else
+			{
+				con.sendUTF( "{'error':'SAS not found'}" );
 			}
 		} );	// get user session
 	}

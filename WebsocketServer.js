@@ -96,6 +96,8 @@ module.exports = class WebsocketServer {
             var msg = null;
             var pmessage = message.utf8Data.replace(/\\"/g, '"');
 
+            console.log("=========================================");
+
             console.log("Message arrived on WS: " + JSON.stringify( message ) + " removed " + pmessage );
 
             if( JSON.stringify( message ).indexOf( "Connection opened" ) != -1 )
@@ -111,18 +113,59 @@ module.exports = class WebsocketServer {
 
             if( msg != null && msg.type == "msg" )
             {
-              console.log("Message is internal message, authid: " + msg.data.authid );
+              console.log("Message is internal message, authid: " + msg.data.authid + " sessionid "+ msg.data.sessionid + " sasid " + msg.data.sasid );
 
               //{"type":"msg","data":{"type":"request","requestid":"fconn-req-vsuc024d-ijhhazol-trs083wd","path":"system.library/sas/register","data":{"authId":"e59317d1b4f1ed8fb397c08845130fce","type":"open"},"authid":"e59317d1b4f1ed8fb397c08845130fce","sessionid":"e59317d1b4f1ed8fb397c08845130fce"}}
               if( msg.data.path == "system.library/sas/register" )
-              {
-                resp = SASManager.register( connection, msg.data.sessionid, msg.data.authid, msg.data.type, msg.data.sasid, msg.data.force );
+              { // register( con, sessionid, username, type, sasid, force, appname )
+                resp = SASManager.register( connection, msg.data.sessionid, msg.data.username, msg.data.stype, msg.data.sasid, msg.data.force, msg.data.appname );
               }
 
               //{"type":"msg","data":{"type":"request","requestid":"fconn-req-7gdno8qj-7mfc0hvq-b6cssmyx","path":"system.library/sas/unregister","data":{"sasid":"140735340906368"},"authid":"e59317d1b4f1ed8fb397c08845'
               else if( msg.data.path == "system.library/sas/unregister" )
               {
-                resp = SASManager.unregister( connection, msg.data.authid, msg.sasid );
+                resp = SASManager.unregister( connection, msg.data.sessionid, msg.data.sasid );
+              }
+
+              else if( msg.data.path == "system.library/sas/accept" )
+              {
+                resp = SASManager.accept( connection, msg.data.sessionid, msg.data.sasid, msg.data.username, msg.data.force );
+              }
+
+              else if( msg.data.path == "system.library/sas/decline" )
+              {
+                resp = SASManager.decline( connection, msg.data.sessionid, msg.data.sasid );
+              }
+
+              else if( msg.data.path == "system.library/sas/share" )
+              {
+                resp = SASManager.share( connection, msg.data.sessionid, msg.data.sasid, msg.data.userlist, msg.data.message );
+              }
+
+              else if( msg.data.path == "system.library/sas/unshare" )
+              {
+                resp = SASManager.unshare( connection, msg.data.sessionid, msg.data.sasid, msg.data.userlist );
+              }
+
+              else if( msg.data.path == "system.library/sas/send" )
+              {
+                resp = SASManager.send( connection, msg.data.sessionid, msg.data.sasid, msg.data.usernames, msg.data.msg );
+              }
+
+              else if( msg.data.path == "system.library/sas/sendowner" )
+              {
+                resp = SASManager.sendowner( connection, msg.data.sessionid, msg.data.sasid, msg.data.msg );
+              }
+
+              else if( msg.data.path == "system.library/sas/putvar" )
+              {
+                //putvar( con, sessionid, sasid, val, valid, mode )
+                resp = SASManager.putvar( connection, msg.data.sessionid, msg.data.sasid, msg.data.var, msg.data.varid, msg.data.mode );
+              }
+
+              else if( msg.data.path == "system.library/sas/getvar" )
+              {
+                resp = SASManager.getvar( connection, msg.data.sessionid, msg.data.sasid, msg.data.varid );
               }
             }
             else

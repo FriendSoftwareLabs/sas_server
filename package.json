@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "promise-mysql2": "^1.0.0",
+    "qs": "^6.11.0",
     "websocket": "^1.0.34"
   }
 }

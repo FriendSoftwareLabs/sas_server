@@ -13,7 +13,7 @@ module.exports = class UserSession
         this.wsConnection = con;
         this._isAdmin = isAdmin;
         this._isAccepted = isAccepted;
-        console.log("UserSession : " + this.authid  );
+        console.log("Authid : " + this.authid + " USersession " + this.sessionid );
     }
 
     getUsername()

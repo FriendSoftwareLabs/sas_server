@@ -22,31 +22,36 @@ module.exports = class Database
 
 	  static findUserSessionBySessionID(sessionid ) {
         return new Promise(async (resolve) => {
-          console.log('findUserSessionBySessionID');
+          console.log('findUserSessionBySessionID '+ sessionid );
           try
-      {
+          {
               let sql;
-              sql = 'SELECT * FROM FUser';// WHERE ';
-              //sql += 'SessionID= ?';
-              console.log('Looking for Data : ' + database );
-              const data = await database.query(sql, [`${sessionid}%`]);
+              sql = 'SELECT u.* FROM FUser u inner join FUserSession us on u.ID=us.UserID WHERE us.SessionID=\''+sessionid +'\' limit 1;';
+              //sql += ' us.SessionID= ? limit 1';
+              //console.log('Looking for Data : ' + database );
+              const data = await database.query(sql);
+              const maxEntries = data.length - 1;
 
               console.log('findUserSessionBySessionID: ' + data);
 
               var retData = [{}];
 
               data.forEach(function (item, index) {
-                  //console.log('row ' + JSON.stringify(item), JSON.stringify(index) );
-                  item.forEach(function (litem, lindex) {
-                      retData[ lindex ] =  JSON.stringify(litem);
-                      console.log('in table: ' + JSON.stringify(retData[ lindex ]) );
+                  if( index < maxEntries )
+                  {
+                  //console.log('row ' + JSON.stringify(item) + ' index ' + JSON.stringify(index) + ' last ' + maxEntries );
+                  retData[ index ] =  JSON.stringify(item);
+                  //item.forEach(function (litem, lindex) {
+                  //    retData[ lindex ] =  JSON.stringify(litem);
+                  //    console.log('in table: ' + JSON.stringify(retData[ lindex ]) );
                       //console.log('row ' + JSON.stringify(litem), JSON.stringify(lindex) );
-                    });
+                  //  });
+                  }
                 });
               return resolve(retData);	// data
           }
-      catch (err) 
-      {
+          catch (err) 
+          {
               console.error(err);
               return resolve(null);
           }
@@ -57,28 +62,30 @@ module.exports = class Database
     // Find sessions and servers to which they belongs
     //
 
-    static findServersAndSessionsBySessionID(sessionid ) {
+    static findServersAndSessionsBySessionID( userlist ) {
       return new Promise(async (resolve) => {
         console.log('findServersAndSessionsBySessionID');
         try
-    {
+        {
+          var users = "'" + userlist.split( "," ).join( "','" ) + "'";
             let sql;
-            sql = 'SELECT us.SessionID,cn.Address FROM `FUserSession` us inner join FClusterNode cn on us.FCID=cn.FCID';
-            //sql += 'SessionID= ?';
+            sql = 'SELECT us.SessionID,cn.Address FROM `FUserSession` us inner join FClusterNode cn on us.FCID=cn.FCID inner join FUser u on us.UserID=u.ID where u.Name in ('+ users +') group by cn.Address';
+            // AND DeviceIdentity != 'tempsession'
             console.log('Looking for Data : ' + database );
-            const data = await database.query(sql, [`${sessionid}%`]);
+            const data = await database.query(sql);
+            const maxEntries = data.length - 1;
 
             console.log('findServersAndSessionsBySessionID: ' + data);
 
             var retData = [{}];
 
             data.forEach(function (item, index) {
-                //console.log('row ' + JSON.stringify(item), JSON.stringify(index) );
-                item.forEach(function (litem, lindex) {
-                    retData[ lindex ] =  JSON.stringify(litem);
-                    console.log('in table: ' + JSON.stringify(retData[ lindex ]) );
-                    //console.log('row ' + JSON.stringify(litem), JSON.stringify(lindex) );
-                  });
+                console.log('row ' + JSON.stringify(item), JSON.stringify(index) );
+                if( index < maxEntries )
+                  {
+                  //console.log('row ' + JSON.stringify(item) + ' index ' + JSON.stringify(index) + ' last ' + maxEntries );
+                  retData[ index ] = item;// JSON.stringify(item);
+                  }
               });
             return resolve(retData);	// data
         }

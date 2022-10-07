@@ -17,12 +17,13 @@ module.exports = class SAS
         this.sessionList = new Map();   // list of sessions in SAS
         this.sessionOwner = null;       // session owner
         this.appname = appname;         // application name
+        this.invitedUsers = [];         // inviated users
 
         this.varMap = new Map();        // variable map
 
         //us = new UserSession();
         //this.sessionList.add( us );
-        console.log("SASID : " + this.ID + " - " + this.type );
+        console.log("Create SAS : SASID : " + this.ID + " - " + this.type );
     }
 
     getID()
@@ -57,36 +58,75 @@ module.exports = class SAS
 
     getVariable( val )
     {
+        console.log('SAS get variable key: ' + val + ' size ' + this.varMap.length );
         return this.varMap.get( val );
     }
 
     putVariable( val, string )
     {
-        this.varMap[ val ] = string;
+        this.varMap.add( string, val );
+    }
+
+    setInvatedUsers( users )
+    {
+        this.invitedUsers = users;
+    }
+
+    addInvatedUsers( user )
+    {
+        this.invitedUsers.push( user );
     }
 
     //
     // Add new entry to list
     //
 
-    addUserSession( key, username, userid, connection, isAccepted, isAdmin )
+    addUserSession( sessionid, username, userid, connection, isAccepted, isAdmin )
     {
-        let sa = new UserSession( username, userid, connection, isAdmin, isAccepted );
-        this.sessionList.add( sa, key );
-        if( this.sessionList.length == 1 )  // first session means its owner
+        let access = false;
+
+        if( this.type == 'open' )
         {
-            this.sessionOwner = sa;
+            access = true;
         }
-        console.log("SAS user session added: " + username );
+        else
+        {
+            for( let lusr of this.invitedUsers )
+            {
+                if( lusr == username )
+                {
+                    access = true;
+                    break;
+                }
+            }
+        }
+
+        if( access == true )
+        {
+            var sa = new UserSession( sessionid, username, userid, connection, isAdmin, isAccepted );
+            console.log("addUserSession: session user name: " + sa.getUsername() );
+            this.sessionList.add( sa, sessionid );
+
+            if( this.sessionList.length == 1 )  // first session means its owner
+            {
+                this.sessionOwner = sa;
+                console.log("addUserSesssion owner set");
+            } 
+            console.log("SAS user session added: " + sa.getUsername() );
+        }
+        else
+        {
+            console.log("SAS user session was not added (no access/invitation): " + username );
+        }
     }
 
     //
     // Get entry from list
     //
 
-    getUserSession( key )
+    getUserSession( sessionid )
     {
-        return this.sessionList.get( key );
+        return this.sessionList.get( sessionid );
     }
 
     //
@@ -105,5 +145,29 @@ module.exports = class SAS
     removeUserSession( key )
     {
         this.sessionList.remove( key );
+    }
+
+    //
+    // Remove entry by user name
+    //
+
+    removeUserSessionByUsername( uname )
+    {
+        for (var session in sasFromList.sessionList.values() )
+        {
+            if( session.getUsername() == uname )
+            {
+                this.sessionList.remove( session.getSessionid() );
+            }
+        }
+    }
+
+    //
+    // Get session list
+    //
+
+    getSessionlist()
+    {
+        return this.sessionList;
     }
 }
