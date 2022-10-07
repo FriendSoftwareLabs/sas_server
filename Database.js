@@ -36,16 +36,17 @@ module.exports = class Database
 
               var retData = [{}];
 
-              data.forEach(function (item, index) {
+              data.forEach(function (item, index) 
+              {
                   if( index < maxEntries )
                   {
-                  //console.log('row ' + JSON.stringify(item) + ' index ' + JSON.stringify(index) + ' last ' + maxEntries );
-                  retData[ index ] =  JSON.stringify(item);
-                  //item.forEach(function (litem, lindex) {
-                  //    retData[ lindex ] =  JSON.stringify(litem);
-                  //    console.log('in table: ' + JSON.stringify(retData[ lindex ]) );
-                      //console.log('row ' + JSON.stringify(litem), JSON.stringify(lindex) );
-                  //  });
+                    //console.log('row ' + JSON.stringify(item) + ' index ' + JSON.stringify(index) + ' last ' + maxEntries );
+                    retData[ index ] =  JSON.stringify(item);
+                    //item.forEach(function (litem, lindex) {
+                    //    retData[ lindex ] =  JSON.stringify(litem);
+                    //    console.log('in table: ' + JSON.stringify(retData[ lindex ]) );
+                    //console.log('row ' + JSON.stringify(litem), JSON.stringify(lindex) );
+                    //  });
                   }
                 });
               return resolve(retData);	// data
@@ -79,18 +80,19 @@ module.exports = class Database
 
             var retData = [{}];
 
-            data.forEach(function (item, index) {
-                console.log('row ' + JSON.stringify(item), JSON.stringify(index) );
-                if( index < maxEntries )
-                  {
-                  //console.log('row ' + JSON.stringify(item) + ' index ' + JSON.stringify(index) + ' last ' + maxEntries );
-                  retData[ index ] = item;// JSON.stringify(item);
-                  }
-              });
-            return resolve(retData);	// data
+            data.forEach(function (item, index) 
+            {
+              console.log('row ' + JSON.stringify(item), JSON.stringify(index) );
+              if( index < maxEntries )
+              {
+                //console.log('row ' + JSON.stringify(item) + ' index ' + JSON.stringify(index) + ' last ' + maxEntries );
+                retData[ index ] = item;// JSON.stringify(item);
+              }
+            });
+          return resolve(retData);	// data
         }
-    catch (err) 
-    {
+        catch (err) 
+        {
             console.error(err);
             return resolve(null);
         }
@@ -140,8 +142,8 @@ module.exports = class Database
 
               return resolve(retData);	// data
           }
-      catch (err) 
-      {
+          catch (err) 
+          {
               console.error(err);
               return resolve(null);
           }

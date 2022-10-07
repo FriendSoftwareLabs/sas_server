@@ -26,35 +26,63 @@ module.exports = class SAS
         console.log("Create SAS : SASID : " + this.ID + " - " + this.type );
     }
 
+    //
+    // Get SAS ID
+    //
+
     getID()
     {
         return this.ID;
     }
+
+    //
+    // Get SAS WebSocket Connection
+    //
 
     getWSConnection()
     {
         return this.wsConnection;
     }
 
+    //
+    // Get type of SAS. open or closed
+    //
+
     getType()
     {
         return this.type;
     }
+
+    //
+    // Get Session Owner (Session structure)
+    //
 
     getSessionOwner()
     {
         return this.sessionOwner;
     }
 
+    //
+    // Get Application Name assigned to SAS
+    //
+
     getAppname()
     {
         return this.appname;
     }
 
+    //
+    // Get variable list
+    //
+
     getVariableMap()
     {
         return this.varMap;
     }
+
+    //
+    // Get SAS variable by key
+    //
 
     getVariable( val )
     {
@@ -62,15 +90,28 @@ module.exports = class SAS
         return this.varMap.get( val );
     }
 
+    //
+    // Put SAS variable into map
+    //
+
     putVariable( val, string )
     {
         this.varMap.add( string, val );
     }
 
+    //
+    // Set Invited users
+    // If user is invated (name) then he is allowed to join SAS
+    //
+
     setInvatedUsers( users )
     {
         this.invitedUsers = users;
     }
+
+    //
+    // Add user to user list which have access to SAS
+    //
 
     addInvatedUsers( user )
     {

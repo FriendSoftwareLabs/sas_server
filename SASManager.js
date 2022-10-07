@@ -428,7 +428,7 @@ module.exports = class SASManager
 					{
 						sasFromList.addUserSession( sessionid, username, con, true, false );	// session exist so we only add 
 
-						sasFromList.getSessionOwner().getConnection().sendUTF( "{'type':'client-accept','data':'" + us.getUsername() + "'}" );
+						sasFromList.getSessionOwner().sendMessage( "{'type':'client-accept','data':'" + us.getUsername() + "'}" );
 
 /*
 					SASUList *li = as->sas_UserSessionList;
@@ -583,7 +583,7 @@ module.exports = class SASManager
 				var sasFromList = this.sasMap.get( sasid );
 				if( sasFromList != null )
 				{
-					sasFromList.getSessionOwner().getConnection().sendUTF( "{'type':'client-decline','data':'" + resp[0].Name + "'}" );
+					sasFromList.getSessionOwner().sendMessage( "{'type':'client-decline','data':'" + resp[0].Name + "'}" );
 				}
 			}
 		} );	// get user session
@@ -875,7 +875,7 @@ module.exports = class SASManager
 							let locmsg = "{'type':'msg','data':{'type':'"+ sasFromList.getSessionOwner().getSessionid() +"', 'data':{'type':'"+ sasFromList.getID() +"','data':{'identity':{'username':'"+ sasFromList.getSessionOwner().getUsername() +"'},'data':{'type':'sasid-close','data':'"+ session.getUsername() +"'}}}}}";
 
 							console.log("send (all): trying to send message to session " + session.getUsername() );
-							session.getConnection().sendUTF( locmsg );
+							session.sendMessage( locmsg );
 						}
 
 						for (var session in sasFromList.getSessionlist().values() )
@@ -904,7 +904,7 @@ module.exports = class SASManager
 									let locmsg = "{'type':'msg','data':{'type':'"+ sasFromList.getSessionOwner().getSessionid() +"', 'data':{'type':'"+ sasFromList.getID() +"','data':{'identity':{'username':'"+ sasFromList.getSessionOwner().getUsername() +"'},'data':{'type':'sasid-close','data':'"+ session.getUsername() +"'}}}}}";
 
 									console.log("send (all): trying to send message to session " + session.getUsername() );
-									session.getConnection().sendUTF( locmsg );
+									session.sendMessage( locmsg );
 								}
 							}
 						}
@@ -1001,7 +1001,7 @@ module.exports = class SASManager
 						for (var session in sasFromList.getSessionlist().values() )
 						{
 							console.log("send (all): trying to send message to session " + session.getUsername() );
-							session.getConnection().sendUTF( msg );
+							session.sendMessage( msg );
 						}
 					}
 					else
@@ -1017,7 +1017,7 @@ module.exports = class SASManager
 								if( session.getUsername() == uname  )
 								{
 									console.log("sending message: " +msg + " to user " + uname );
-									session.getConnection().sendUTF( msg );
+									session.sendMessage( msg );
 								}
 							}
 						}
@@ -1122,9 +1122,9 @@ module.exports = class SASManager
 
 				if( sasFromList != null )
 				{
-					if( sasFromList.getSessionOwner() != null && sasFromList.getSessionOwner().getConnection() != null )
+					if( sasFromList.getSessionOwner() != null )
 					{
-						sasFromList.getSessionOwner().getConnection().sendUTF( msg );
+						sasFromList.getSessionOwner().sendMessage( msg );
 					}
 					else
 					{
