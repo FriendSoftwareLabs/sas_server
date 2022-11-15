@@ -176,6 +176,8 @@ module.exports = class SASManager
 			}
 
 			console.log(" SAS created ID: " + sid + " number of entries " + this.sasMap.length );
+
+			Database.updateSessionsInSASServer( Main.SERVER_ID, true );
 		}
 		else	// authid was not found in DB
 		{
@@ -270,6 +272,7 @@ module.exports = class SASManager
 						con.sendUTF( "{'SASID':" + sasid + "}" );
 					}
 				}
+				Database.updateSessionsInSASServer( Main.SERVER_ID, false );
 			}
 			
 		}

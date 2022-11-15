@@ -9,10 +9,11 @@
         },
         "database":
         {
-            "host": "192.168.86.150",
+            "host": "215.148.12.50",
             "user":"root",
             "password":"root",
             "name": "FriendMaster"
-        }
+        },
+        "ip" : "215.148.12.3"
     }
 }

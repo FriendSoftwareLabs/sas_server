@@ -6,18 +6,38 @@ var mysql = require('promise-mysql2');
 const SASManager = require('./SASManager.js');
 const util = require('util');
 const Database = require('./Database.js');
+const { networkInterfaces } = require('os');
+const crypto = require('crypto')
+
 
 var db; // database
 
-class Main {
-    constructor( dbcon, wsport ) {
+class Main 
+{
+    static SERVER_ID = "";
+
+    constructor( dbcon, config )
+     {
+
+      this.config = config;
       this.id = 'id_1';
       this.websocketServer = null
       this.dbcon = dbcon;
-      this.websocketport = wsport;
+      this.websocketport = config.data.websockets.port;
       db = dbcon;
       this.SASManager = new SASManager( );
       this.Databae = new Database( db );
+
+      let macs = JSON.stringify(  require('os').networkInterfaces(),  null,  2).match(/"mac": ".*?"/g).toString().match(/\w\w:\w\w:\w\w:\w\w:\w\w:\w\w/g);
+      let hash = crypto.createHash('md5').update( macs.toString() ).digest("hex");
+      Main.SERVER_ID = hash;
+
+      //
+      // Create FSASServer table if neccessary
+      // and add current server to list
+      //
+
+      Database.createServer( Main.SERVER_ID, config.data.ip );
     }
 
     //
@@ -55,7 +75,9 @@ const fs = require('fs');
 
 var rawdata
 // default configuration
-var config = JSON.parse("{\"type\":\"configuration\",\"data\":\
+var config = "";
+/*
+ JSON.parse("{\"type\":\"configuration\",\"data\":\
     {\
       \"websockets\": { \
           \"port\":1337 \
@@ -68,6 +90,7 @@ var config = JSON.parse("{\"type\":\"configuration\",\"data\":\
       } \
   } \
 }");
+*/
 /*
 var config = JSON.parse("{\"type\":\"configuration\",\"data\":\
     {\
@@ -85,20 +108,48 @@ var config = JSON.parse("{\"type\":\"configuration\",\"data\":\
 */
 
 try {
-    rawdata = fs.readFileSync('config.json');
-    locconf = JSON.parse(rawdata);
+    rawdata = fs.readFileSync('config.json').toString();
+    rawdata = rawdata.replace(/(\r\n|\n|\r)/gm, "");
+    var locconf = JSON.parse(rawdata);
     console.log( locconf );
 
     if( locconf.type == 'configuration' )
     {
         console.log("This is configuration");
     }
+    
     // if success return loaded configuration
     config = locconf
     
 } catch (err) {
     // Here you get the error when the file was not found,
     // but you also get any other error
+    console.log("Error while parsing configuration file: " + err );
+  }
+
+try{
+    if( config.data.ip == "current" )
+    {
+      const nets = networkInterfaces();
+      const results = Object.create(null); // Or just '{}', an empty object
+
+      for (const name of Object.keys(nets)) {
+        for (const net of nets[name]) {
+          // Skip over non-IPv4 and internal (i.e. 127.0.0.1) addresses
+          // 'IPv4' is in Node <= 17, from 18 it's a number 4 or 6
+          const familyV4Value = typeof net.family === 'string' ? 'IPv4' : 4
+          if (net.family === familyV4Value && !net.internal) {
+            if (!results[name]) {
+                results[name] = [];
+            }
+            results[name].push(net.address);
+          }
+        }
+      }
+      console.log("IP output: " + JSON.stringify( results ) );
+    }
+} catch (err) {
+    console.log("Error while getting ip address: " + err );
   }
 
 
@@ -143,5 +194,5 @@ var connectionPool = mysql.createPool({
 
   console.log("Main start " + config.data.websockets.port );
 
-  var main = new Main( connectionPool, config.data.websockets.port );
+  var main = new Main( connectionPool, config );
   main.runMain( );

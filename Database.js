@@ -15,6 +15,136 @@ module.exports = class Database
 	{ 
 		database = db;
 	} 
+
+  /*
+ CREATE TABLE IF NOT EXISTS `FSASServer` (
+	`ID` bigint(20) NOT NULL AUTO_INCREMENT,
+	`IP` varchar(64) NOT NULL,
+	`UID` varchar(256) NOT NULL,
+	`Status` smallint(2) DEFAULT NULL,
+	`Sessions` bigint(20) NOT NULL,
+	PRIMARY KEY (`ID`) , UNIQUE( `UID` )
+) ENGINE=InnoDB AUTO_INCREMENT=58 DEFAULT CHARSET=latin1;
+
+CREATE TABLE IF NOT EXISTS `FSASSession` (
+	`ID` bigint(20) NOT NULL AUTO_INCREMENT,
+	`ServerID` bigint(20) NOT NULL,
+	`CreationTime` bigint(32) NOT NULL,
+	PRIMARY KEY (`ID`) 
+) ENGINE=InnoDB AUTO_INCREMENT=58 DEFAULT CHARSET=latin1;
+
+  */
+
+    //
+    // Generate tables in DB
+    //
+
+     static createServer( id, ip )
+     {
+      console.log('checkAndGenerateDBTables: ' );
+        new Promise(async (resolve) => {
+          console.log('checkAndGenerateDBTables 1');
+          try
+          {
+            let sql;
+              
+            sql = "CREATE TABLE IF NOT EXISTS `FSASServer` ( \
+              `ID` bigint(20) NOT NULL AUTO_INCREMENT, \
+              `IP` varchar(64) NOT NULL, \
+              `Status` smallint(2) DEFAULT NULL,  \
+              `Sessions` bigint(20) NOT NULL, \
+              PRIMARY KEY (`ID`) \
+             ) ENGINE=InnoDB AUTO_INCREMENT=58 DEFAULT CHARSET=latin1";
+
+            const data = await database.query(sql, []);
+
+            console.log('checkAndGenerateDBTables: Looking for Data: sql: ' + sql );
+
+            var retData = [];
+            var i = 0;
+
+          //return resolve(retData);	// data
+        }
+        catch (err) 
+        {
+          console.error(err);
+          //return resolve(null);
+        }
+      });
+
+      //
+      // Insert current server into DB
+      //
+
+      new Promise(async (resolve) => {
+        console.log('checkAndGenerateDBTables 1');
+        try
+        {
+          let sql;
+
+          //
+          // UID is unique so entry cannot be in DB twice
+          //
+            
+          sql = "INSERT INTO `FSASServer` (`ID`, `IP`, `UID`, `Status`, `Sessions`) VALUES (NULL, '"+ ip +"','"+ id +"', NULL, '')";
+
+          const data = await database.query(sql, []);
+
+          console.log('checkAndGenerateDBTables: Looking for Data: sql: ' + sql );
+
+          var retData = [];
+          var i = 0;
+
+        //return resolve(retData);	// data
+      }
+      catch (err) 
+      {
+        //console.error(err);
+        //return resolve(null);
+      }
+    });
+     }
+
+     //
+	  // Update Sessions
+	  //
+
+	  static updateSessionsInSASServer( id, add ) 
+    {
+      return new Promise(async (resolve) => 
+      {
+        console.log('findUserSessionBySessionID '+ sessionid );
+        try
+        {
+          let sql = "";
+
+          if( add == true )
+          {
+            sql = "UPDATE FSASServer SET Sessions = Sessions + 1 WHERE UID='" + id +"';" ;
+          }
+          else
+          {
+            sql = "UPDATE FSASServer SET Sessions = Sessions - 1 WHERE UID='" + id +"';" ;
+          }
+          //sql += ' us.SessionID= ? limit 1';
+          //console.log('Looking for Data : ' + database );
+          const data = await database.query(sql);
+          const maxEntries = data.length - 1;
+
+          console.log('findUserSessionBySessionID: ' + data);
+
+          var retData = [{}];
+
+          return resolve(retData);	// data
+        }
+        catch (err) 
+        {
+          console.error(err);
+          return resolve(null);
+        }
+      });
+    }
+     
   
     //
 	  // Find users by sessionid
