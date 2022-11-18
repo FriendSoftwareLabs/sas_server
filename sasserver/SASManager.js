@@ -11,7 +11,7 @@ const SAS = require('./SAS.js');
 var mysql = require('promise-mysql2');
 const Database = require('./Database.js');
 const UserSession = require('./UserSession.js');
-const { isGeneratorFunction } = require('util/types');
+//const { isGeneratorFunction } = require('util/types');
 const friendos = require('./friendos.js');
 
 let globalAuthid = '5d0e8579f3dec0477449c1d004f3c089';

@@ -7,14 +7,15 @@ const SASManager = require('./SASManager.js');
 const util = require('util');
 const Database = require('./Database.js');
 const { networkInterfaces } = require('os');
-const crypto = require('crypto')
+const crypto = require('crypto');
+const Config = require('./config.js');
 
 
 var db; // database
+var SERVER_ID = "1";
 
 class Main 
 {
-    static SERVER_ID = "";
 
     constructor( dbcon, config )
      {
@@ -30,7 +31,7 @@ class Main
 
       let macs = JSON.stringify(  require('os').networkInterfaces(),  null,  2).match(/"mac": ".*?"/g).toString().match(/\w\w:\w\w:\w\w:\w\w:\w\w:\w\w/g);
       let hash = crypto.createHash('md5').update( macs.toString() ).digest("hex");
-      Main.SERVER_ID = hash;
+      SERVER_ID = hash;
 
       //
       // Create FSASServer table if neccessary
@@ -107,6 +108,8 @@ var config = JSON.parse("{\"type\":\"configuration\",\"data\":\
 }");
 */
 
+/*
+// To read file
 try {
     rawdata = fs.readFileSync('config.json').toString();
     rawdata = rawdata.replace(/(\r\n|\n|\r)/gm, "");
@@ -126,6 +129,9 @@ try {
     // but you also get any other error
     console.log("Error while parsing configuration file: " + err );
   }
+*/
+
+config = Config;
 
 try{
     if( config.data.ip == "current" )
