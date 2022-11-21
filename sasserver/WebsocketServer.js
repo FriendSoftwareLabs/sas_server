@@ -5,13 +5,29 @@
 "use strict";// Optional. You will see this name in eg. 'ps' or 'top' command
 
 var http = require('http');
+var https = require('https');
+const fs = require("fs");
 var SASManager;
 var dbcon;
+
+/*
+const WebSocket = require("ws").Server;
+const HttpsServer = require('https').createServer;
+
+
+server = HttpsServer({
+    cert: fs.readFileSync(config.ssl_cert_path),
+    key: fs.readFileSync(config.ssl_key_path)
+})
+socket = new WebSocket({
+    server: server
+});
+*/
 
 module.exports = class WebsocketServer {
   constructor( mainclass )
   {    
-    process.title = 'stefkos';// Port where we'll run the websocket server
+    process.title = 'sas';// Port where we'll run the websocket server
     this.webSocketsServerPort = mainclass.websocketport;// websocket and http servers
     this.webSocketServer = require('websocket').server;
     dbcon = mainclass.dbcon; // database connection
@@ -44,11 +60,26 @@ module.exports = class WebsocketServer {
     // HTTP server
     //
 
-    this.server = http.createServer( function( request, response ) 
+    this.server = null;
+    if( mainclass.secured == true )
     {
-      // Not important for us. We're writing WebSocket server,
-      // not HTTP server
-    });
+		this.server = https.createServer( {
+			cert: fs.readFileSync( mainclass.sslCertPath ),
+			key: fs.readFileSync( mainclass.sslKeyPath )
+			}, function( request, response ) 
+    	{
+    	  // Not important for us. We're writing WebSocket server,
+    	  // not HTTP server
+    	});
+	}
+	else
+	{
+    	this.server = http.createServer( function( request, response ) 
+    	{
+    	  // Not important for us. We're writing WebSocket server,
+    	  // not HTTP server
+    	});
+	}
 
     console.log('Create on port 2: ' + this.webSocketsServerPort );
     //this.server.listen( 1337, function()

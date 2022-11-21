@@ -25,6 +25,9 @@ class Main
       this.websocketServer = null
       this.dbcon = dbcon;
       this.websocketport = config.data.websockets.port;
+      this.secured = config.data.websockets.secured;
+      this.sslCertPath = config.data.websockets.sslCertPath; // "../cfg/crt/certificate.pem";
+      this.sslKeyPath = config.data.websockets.sslKeyPath; // "../cfg/crt/key.pem";
       db = dbcon;
       this.SASManager = new SASManager( );
       this.Databae = new Database( db );

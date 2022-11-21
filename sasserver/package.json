@@ -2,6 +2,8 @@
   "dependencies": {
     "promise-mysql2": "^1.0.0",
     "qs": "^6.11.0",
-    "websocket": "^1.0.34"
+    "util": "^0.12.5",
+    "websocket": "^1.0.34",
+    "websockets": "^0.2.0"
   }
 }
