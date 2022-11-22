@@ -7,8 +7,8 @@ server = {
         {
             port:1337,
 			secured:true,
-			sslCertPath:"cfg/certificate.pem",
-			sslKeyPath:"cfg/key.pem"
+			sslCertPath:"../../cfg/crt/certificate.pem",
+			sslKeyPath:"../../cfg/crt/key.pem"
         },
         database:
         {
