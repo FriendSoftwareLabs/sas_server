@@ -1,4 +1,12 @@
-
+/*©mit**************************************************************************
+*                                                                              *
+* This file is part of FRIEND UNIFYING PLATFORM.                               *
+* Copyright (c) Friend Software Labs AS. All rights reserved.                  *
+*                                                                              *
+* Licensed under the Source EULA. Please refer to the copy of the MIT License, *
+* found in the file license_mit.txt.                                           *
+*                                                                              *
+*****************************************************************************©*/
 
 //
 // Database class
@@ -113,7 +121,7 @@ CREATE TABLE IF NOT EXISTS `FSASSession` (
     {
       return new Promise(async (resolve) => 
       {
-        console.log('findUserSessionBySessionID '+ sessionid );
+        console.log('updateSessionsInSASServer '+ id );
         try
         {
           let sql = "";
@@ -131,7 +139,7 @@ CREATE TABLE IF NOT EXISTS `FSASSession` (
           const data = await database.query(sql);
           const maxEntries = data.length - 1;
 
-          console.log('findUserSessionBySessionID: ' + data);
+          console.log('updateSessionsInSASServer: ' + data);
 
           var retData = [{}];
 
@@ -144,13 +152,58 @@ CREATE TABLE IF NOT EXISTS `FSASSession` (
         }
       });
     }
-     
+    
+    //
+	// Find users by authid
+	//
+
+	static findUserSessionByAuthID(sessionid ) 
+    {
+      return new Promise(async (resolve) => 
+      {
+        console.log('findUserSessionByAuthID '+ sessionid );
+        try
+        {
+          let sql;
+          sql = 'SELECT u.* FROM FUserApplication a, FUserSession us, FUser u WHERE a.UserID = us.UserID AND a.UserID = u.ID AND a.AuthID=\"%s\" LIMIT 1'
+          //sql = 'SELECT u.* FROM FUser u inner join FUserSession us on u.ID=us.UserID WHERE us.SessionID=\''+sessionid +'\' limit 1;';
+          //sql += ' us.SessionID= ? limit 1';
+          //console.log('Looking for Data : ' + database );
+          const data = await database.query(sql);
+          const maxEntries = data.length - 1;
+
+          console.log('findUserSessionByAuthID: ' + data);
+
+          var retData = [{}];
+
+          data.forEach(function (item, index) 
+          {
+            if( index < maxEntries )
+            {
+              //console.log('row ' + JSON.stringify(item) + ' index ' + JSON.stringify(index) + ' last ' + maxEntries );
+              retData[ index ] =  JSON.stringify(item);
+              //item.forEach(function (litem, lindex) {
+              //    retData[ lindex ] =  JSON.stringify(litem);
+              //    console.log('in table: ' + JSON.stringify(retData[ lindex ]) );
+              //console.log('row ' + JSON.stringify(litem), JSON.stringify(lindex) );
+              //  });
+            }
+          });
+          return resolve(retData);	// data
+        }
+        catch (err) 
+        {
+          console.error(err);
+          return resolve(null);
+        }
+      });
+    }
   
     //
-	  // Find users by sessionid
-	  //
+	// Find users by sessionid
+	//
 
-	  static findUserSessionBySessionID(sessionid ) 
+	static findUserSessionBySessionID1(sessionid ) 
     {
       return new Promise(async (resolve) => 
       {
@@ -158,7 +211,8 @@ CREATE TABLE IF NOT EXISTS `FSASSession` (
         try
         {
           let sql;
-          sql = 'SELECT u.* FROM FUser u inner join FUserSession us on u.ID=us.UserID WHERE us.SessionID=\''+sessionid +'\' limit 1;';
+          sql = 'SELECT u.* FROM FUserApplication a, FUserSession us, FUser u WHERE a.UserID = us.UserID AND a.UserID = u.ID AND a.AuthID=\"%s\" LIMIT 1'
+          //sql = 'SELECT u.* FROM FUser u inner join FUserSession us on u.ID=us.UserID WHERE us.SessionID=\''+sessionid +'\' limit 1;';
           //sql += ' us.SessionID= ? limit 1';
           //console.log('Looking for Data : ' + database );
           const data = await database.query(sql);

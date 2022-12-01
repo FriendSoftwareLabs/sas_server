@@ -1,3 +1,12 @@
+/*©mit**************************************************************************
+*                                                                              *
+* This file is part of FRIEND UNIFYING PLATFORM.                               *
+* Copyright (c) Friend Software Labs AS. All rights reserved.                  *
+*                                                                              *
+* Licensed under the Source EULA. Please refer to the copy of the MIT License, *
+* found in the file license_mit.txt.                                           *
+*                                                                              *
+*****************************************************************************©*/
 
 const List = require('./_list.js');
 const Map = require('./map.js');
@@ -7,31 +16,28 @@ const UserSession = require('./UserSession.js');
 // SAS object
 //
 
-module.exports = class SAS 
-{
-    constructor( con, id, type, appname ) 
-    {
-        this.wsConnection = con;        // SAS WebSocket connection
-        this.ID = id;                   // SAS ID
-        this.type = type;               // SAS type
-        this.sessionList = new Map();   // list of sessions in SAS
-        this.sessionOwner = null;       // session owner
-        this.appname = appname;         // application name
-        this.invitedUsers = [];         // inviated users
+module.exports = class SAS {
+    constructor(con, id, type, appname) {
+        this.wsConnection = con; // SAS WebSocket connection
+        this.ID = id; // SAS ID
+        this.type = type; // SAS type
+        this.sessionList = new Map(); // list of sessions in SAS
+        this.sessionOwner = null; // session owner
+        this.appname = appname; // application name
+        this.invitedUsers = []; // inviated users
+        this.timeCreate = Math.floor(Date.now() / 1000); // creation time
+        this.timeLastUsed = this.timeCreate; // last use time
 
-        this.varMap = new Map();        // variable map
+        this.varMap = new Map(); // variable map
 
-        //us = new UserSession();
-        //this.sessionList.add( us );
-        console.log("Create SAS : SASID : " + this.ID + " - " + this.type );
+        console.log("Create SAS : SASID : " + this.ID + " - " + this.type);
     }
 
     //
     // Get SAS ID
     //
 
-    getID()
-    {
+    getID() {
         return this.ID;
     }
 
@@ -39,8 +45,7 @@ module.exports = class SAS
     // Get SAS WebSocket Connection
     //
 
-    getWSConnection()
-    {
+    getWSConnection() {
         return this.wsConnection;
     }
 
@@ -48,8 +53,7 @@ module.exports = class SAS
     // Get type of SAS. open or closed
     //
 
-    getType()
-    {
+    getType() {
         return this.type;
     }
 
@@ -57,8 +61,7 @@ module.exports = class SAS
     // Get Session Owner (Session structure)
     //
 
-    getSessionOwner()
-    {
+    getSessionOwner() {
         return this.sessionOwner;
     }
 
@@ -66,8 +69,7 @@ module.exports = class SAS
     // Get Application Name assigned to SAS
     //
 
-    getAppname()
-    {
+    getAppname() {
         return this.appname;
     }
 
@@ -75,8 +77,7 @@ module.exports = class SAS
     // Get variable list
     //
 
-    getVariableMap()
-    {
+    getVariableMap() {
         return this.varMap;
     }
 
@@ -84,19 +85,17 @@ module.exports = class SAS
     // Get SAS variable by key
     //
 
-    getVariable( val )
-    {
-        console.log('SAS get variable key: ' + val + ' size ' + this.varMap.length );
-        return this.varMap.get( val );
+    getVariable(val) {
+        console.log('SAS get variable key: ' + val + ' size ' + this.varMap.length);
+        return this.varMap.get(val);
     }
 
     //
     // Put SAS variable into map
     //
 
-    putVariable( val, string )
-    {
-        this.varMap.add( string, val );
+    putVariable(val, string) {
+        this.varMap.add(string, val);
     }
 
     //
@@ -104,8 +103,7 @@ module.exports = class SAS
     // If user is invated (name) then he is allowed to join SAS
     //
 
-    setInvatedUsers( users )
-    {
+    setInvatedUsers(users) {
         this.invitedUsers = users;
     }
 
@@ -113,51 +111,41 @@ module.exports = class SAS
     // Add user to user list which have access to SAS
     //
 
-    addInvatedUsers( user )
-    {
-        this.invitedUsers.push( user );
+    addInvatedUsers(user) {
+        this.invitedUsers.push(user);
     }
 
     //
     // Add new entry to list
     //
 
-    addUserSession( sessionid, username, userid, connection, isAccepted, isAdmin )
-    {
+    addUserSession(sessionid, username, userid, connection, isAccepted, isAdmin) {
         let access = false;
 
-        if( this.type == 'open' )
-        {
+        if (this.type == 'open') {
             access = true;
-        }
-        else
-        {
-            for( let lusr of this.invitedUsers )
-            {
-                if( lusr == username )
-                {
+        } else {
+            for (let lusr of this.invitedUsers) {
+                if (lusr == username) {
                     access = true;
                     break;
                 }
             }
         }
 
-        if( access == true )
-        {
-            var sa = new UserSession( sessionid, username, userid, connection, isAdmin, isAccepted );
-            console.log("addUserSession: session user name: " + sa.getUsername() );
-            this.sessionList.add( sa, sessionid );
+        if (access == true) {
+            var sa = new UserSession(sessionid, username, userid, connection, isAdmin, isAccepted);
+            console.log("addUserSession: session user name: " + sa.getUsername());
+            this.sessionList.add(sa, sessionid);
 
-            if( this.sessionList.length == 1 )  // first session means its owner
+            if (this.sessionList.length == 1) // first session means its owner
             {
                 this.sessionOwner = sa;
                 console.log("addUserSesssion owner set");
-            } 
-            console.log("SAS user session added: " + sa.getUsername() );
-        }
-        else
-        {
-            console.log("SAS user session was not added (no access/invitation): " + username );
+            }
+            console.log("SAS user session added: " + sa.getUsername());
+        } else {
+            console.log("SAS user session was not added (no access/invitation): " + username);
         }
     }
 
@@ -165,40 +153,50 @@ module.exports = class SAS
     // Get entry from list
     //
 
-    getUserSession( sessionid )
-    {
-        return this.sessionList.get( sessionid );
+    getUserSession(sessionid) {
+        return this.sessionList.get(sessionid);
     }
 
     //
     // Get number of connections in list
     //
 
-    getConnectionNumber()
-    {
+    getConnectionNumber() {
         return this.sessionList.length;
+    }
+
+    //
+    // Get creation time
+    //
+
+    getCreationTime() {
+        return this.timeCreate;
+    }
+
+    //
+    // Update time when SAS was used
+    //
+
+    updateTime() {
+        this.timeLastUsed = Math.floor(Date.now() / 1000);
     }
 
     //
     // Remove entry
     //
 
-    removeUserSession( key )
-    {
-        this.sessionList.remove( key );
+    removeUserSession(key) {
+        this.sessionList.remove(key);
     }
 
     //
     // Remove entry by user name
     //
 
-    removeUserSessionByUsername( uname )
-    {
-        for (var session in sasFromList.sessionList.values() )
-        {
-            if( session.getUsername() == uname )
-            {
-                this.sessionList.remove( session.getSessionid() );
+    removeUserSessionByUsername(uname) {
+        for (var session in sasFromList.sessionList.values()) {
+            if (session.getUsername() == uname) {
+                this.sessionList.remove(session.getSessionid());
             }
         }
     }
@@ -207,8 +205,7 @@ module.exports = class SAS
     // Get session list
     //
 
-    getSessionlist()
-    {
+    getSessionlist() {
         return this.sessionList;
     }
 }
