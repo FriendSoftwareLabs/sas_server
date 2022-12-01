@@ -21,7 +21,7 @@ var mysql = require('promise-mysql2');
 const Database = require('./Database.js');
 const UserSession = require('./UserSession.js');
 const friendos = require('./friendos.js');
-const schedule = require('node-schedule');
+//const schedule = require('node-schedule');
 
 let globalAuthid = '5d0e8579f3dec0477449c1d004f3c089';
 
@@ -43,10 +43,10 @@ module.exports = class SASManager {
 
         // clean not used sas from time to time
 
-        const job = schedule.scheduleJob(this, '0 17 ? * 0,4-6', function() {
-            console.log('Clean SAS');
-            this.cleanSAS();
-        });
+        //const job = schedule.scheduleJob(this, '0 17 ? * 0,4-6', function() {
+        //    console.log('Clean SAS');
+        //    this.cleanSAS();
+        //});
     }
 
 
