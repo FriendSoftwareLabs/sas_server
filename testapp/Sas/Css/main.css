@@ -1,0 +1,34 @@
+#Targets
+{
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: calc(100% - 200px);
+}
+
+#Targets .Target
+{
+	padding: 8px;
+	white-space: nowrap;
+	overflow: hidden;
+	box-sizing: border-box;
+	text-overflow: ellipsis;
+}
+
+#Targets .Target.Active
+{
+	background: #222222;
+	color: white;
+}
+
+#Buttons
+{
+	position: absolute;
+	box-sizing: border-box;
+	height: 200px;
+	bottom: 0;
+	width: 100%;
+	border-top: 1px solid black;
+	background: #333333;
+}
