@@ -94,7 +94,9 @@ CREATE TABLE IF NOT EXISTS `FSASSession` (
           // UID is unique so entry cannot be in DB twice
           //
             
-          sql = "INSERT INTO `FSASServer` (`ID`, `IP`, `UID`, `Status`, `Sessions`) VALUES (NULL, '"+ ip +"','"+ id +"', NULL, '')";
+          sql = "INSERT INTO `FSASServer` (`ID`, `IP`, `UID`, `Status`, `Sessions`) VALUES (NULL, '"+ ip +"','"+ id +"', 1, 0)";
+
+	  console.log('Insert SQL: ' + sql );
 
           const data = await database.query(sql, []);
 
@@ -107,7 +109,7 @@ CREATE TABLE IF NOT EXISTS `FSASSession` (
       }
       catch (err) 
       {
-        //console.error(err);
+        console.error("SQL call: " + err);
         //return resolve(null);
       }
     });
@@ -256,7 +258,7 @@ CREATE TABLE IF NOT EXISTS `FSASSession` (
         {
           var users = "'" + userlist.split( "," ).join( "','" ) + "'";
             let sql;
-            sql = 'SELECT us.SessionID,cn.Address FROM `FUserSession` us inner join FClusterNode cn on us.FCID=cn.FCID inner join FUser u on us.UserID=u.ID where u.Name in ('+ users +') group by cn.Address';
+            sql = 'SELECT us.SessionID,cn.Address FROM `FUserSession` us inner join FClusterNode cn on us.FCID=cn.FCID inner join FUser u on us.UserID=u.ID where u.Name in ('+ users +')';// group by cn.Address';
             // AND DeviceIdentity != 'tempsession'
             console.log('Looking for Data : ' + database );
             const data = await database.query(sql);

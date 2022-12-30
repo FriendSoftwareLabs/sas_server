@@ -1,24 +1,25 @@
 
 server = {
-    type:"configuration",
+    type:'configuration',
     data:
     {
         websockets:
         {
-            port:1337,
-			secured:true,
-			sslCertPath:"cfg/certificate.pem",
-			sslKeyPath:"cfg/key.pem"
+		port:6505,
+		secured:true,
+		sslCertPath:"certificate.pem",
+		sslKeyPath:"key.pem"
         },
         database:
         {
-            host: "215.148.12.51",
-            user:"root",
-            password:"root",
-            name: "FriendMaster"
+            host: 'localhost',
+            user:'friendup',
+            password:'friendup1',
+            name: 'friendup'
         },
-        ip : "215.148.12.3"
+        ip : '185.116.4.178'
     }
 };
 
 module.exports = server;
+

@@ -100,14 +100,14 @@ module.exports = class SASManager {
         console.log("[register] users: " + usersProm);
         usersProm.then((resp) => {
 
-            console.log("[register] response in promise, found objects resp" + resp + " length " + resp.length + " con : " + con + " username " + username + " type " + type + " sasid " + sasid + " force " + force);
+            console.log("[register] response in promise, found objects resp" + resp + " length " + resp.length + " con : " + con + " username " + username + " type " + type + " sasid " + sasid + " force " + force + " respid " + resp.ID);
 
-            if (resp.length > 0 && resp.ID != undefined) // username exist, user is authenticated to do something with SAS
+            if (resp.length > 0 ) //&& resp.ID != undefined) // username exist, user is authenticated to do something with SAS
             {
                 console.log("[register] resp.length > 0, sasid " + sasid);
                 if (sasid != null) {
                     console.log("[register] sasid != null");
-                    var sasFromList = getSAS(sasid);
+                    var sasFromList = this.getSAS(sasid);
                     if (sasFromList != null) //
                     {
                         console.log("[register] SAS found by id, type: " + sasFromList.type);
@@ -115,7 +115,7 @@ module.exports = class SASManager {
                             var sasEntry = sasFromList.getUserSession(authid);
                             console.log("[register]open getting user by id " + authid + " entry " + sasEntry);
                             if (sasEntry == null) {
-                                sasFromList.addUserSession(sessionid, username, 1, con, true, true); // session exist so we only add 
+                                sasFromList.addUserSession(authid, username, 1, con, true, true); // session exist so we only add 
                             }
                             con.sendUTF("{'type':'client-accept','data':'" + authid + "'}");
                         } else // connection was created by someone and its marked as "closed" so user have to ask admin for access
@@ -138,7 +138,7 @@ module.exports = class SASManager {
                         if (newsas != null) {
                             newsas.addUserSession(authid, username, 1, con, true, true); // put authentication and connection to SAS
 
-                            putSAS(newsas, sid); // add new SAS to global list
+                            this.putSAS(newsas, sid); // add new SAS to global list
                         }
 
                         con.sendUTF("{'SASID':" + sid + ",'type':" + type + "}");
@@ -147,7 +147,7 @@ module.exports = class SASManager {
                 else {
                     // SAS do not exist, we must create it
                     console.log("[register] sasid paramter missing");
-                    var sasFromList = getSAS(sasid);
+                    var sasFromList = this.getSAS(sasid);
                     if (sasFromList != null) //
                     {
                         if (sasFromList.type == 'open') {
@@ -170,7 +170,7 @@ module.exports = class SASManager {
                         if (newsas != null) {
                             newsas.addUserSession(authid, username, 1, con, true, true); // put authentication and connection to SAS
 
-                            putSAS(newsas, sid); // add new SAS to global list
+                            this.putSAS(newsas, sid); // add new SAS to global list
 
                         }
 
@@ -209,14 +209,14 @@ module.exports = class SASManager {
         console.log("[unregister]: " + usersProm);
         usersProm.then((resp) => {
 
-            if (resp.length <= 0 || resp.ID == undefined) // response do not contain ID so it means that user was not found
+            if (resp.length <= 0 ) //|| resp.ID == undefined) // response do not contain ID so it means that user was not found
             {
                 con.sendUTF("{'response':'permission denied','code':''}");
                 return;
             }
 
             if (sasid != null) {
-                var sasFromList = getSAS(sasid);
+                var sasFromList = this.getSAS(sasid);
                 if (sasFromList != null) {
                     if (sasFromList.type == 'open') {
                         // if there is entry we remove it
@@ -389,14 +389,14 @@ module.exports = class SASManager {
         console.log("[accept]: " + usersProm);
         usersProm.then((resp) => {
 
-            if (resp.length <= 0 || resp.ID == undefined) // response do not contain ID so it means that user was not found
+            if (resp.length <= 0 ) //|| resp.ID == undefined) // response do not contain ID so it means that user was not found
             {
                 con.sendUTF("{'response':'permission denied','code':''}");
                 return;
             }
 
             if (sasid != null) {
-                var sasFromList = getSAS(sasid);
+                var sasFromList = this.getSAS(sasid);
                 if (sasFromList != null) {
                     if (sasFromList.type == 'open') {
                         // add user session already control if user can be added to list (his sessions)
@@ -464,7 +464,7 @@ module.exports = class SASManager {
                         if (newsas != null) {
                             newsas.addUserSession(authid, username, authid, con, true, true); // put authentication and connection to SAS
 
-                            putSAS(newsas, id); // add new SAS to global list
+                            this.putSAS(newsas, id); // add new SAS to global list
                         }
 
                         con.sendUTF("{'SASID':" + id + ",'type':" + type + "}");
@@ -537,7 +537,7 @@ module.exports = class SASManager {
         console.log("[decline]: " + usersProm);
         usersProm.then((resp) => {
 
-            if (resp.length <= 0 || resp.ID == undefined) // response do not contain ID so it means that user was not found
+            if (resp.length <= 0 ) //|| resp.ID == undefined) // response do not contain ID so it means that user was not found
             {
                 con.sendUTF("{'response':'permission denied','code':''}");
                 return;
@@ -555,7 +555,7 @@ module.exports = class SASManager {
                     }
                 }
 
-                var sasFromList = getSAS(sasid);
+                var sasFromList = this.getSAS(sasid);
                 if (sasFromList != null) {
                     sasFromList.getSessionOwner().sendMessage("{'type':'client-decline','data':'" + resp[0].Name + "'}");
                 }
@@ -644,7 +644,7 @@ module.exports = class SASManager {
         usersProm.then((resp) => {
             console.log("[share]: response " + resp);
 
-            if (resp.length <= 0 || resp.ID == undefined) // response do not contain ID so it means that user was not found
+            if (resp.length <= 0 ) //|| resp.ID == undefined) // response do not contain ID so it means that user was not found
             {
                 con.sendUTF("{'response':'permission denied','code':''}");
                 return;
@@ -653,7 +653,7 @@ module.exports = class SASManager {
             var resp = "{'response':[";
 
             if (sasid != null) {
-                var sasFromList = getSAS(sasid);
+                var sasFromList = this.getSAS(sasid);
                 if (sasFromList != null) {
 
                     //
@@ -691,8 +691,9 @@ module.exports = class SASManager {
                                 if (ent.SessionID != null && ent.Address != null) // we have to be sure that address and session exist
                                 {
                                     var fos = new friendos(ent.Address);
+                                    //fos.sendRequest('system.library/user/servermessage', 'sessionid=' + ent.SessionID + '&message=' + encodeURIComponent(inviteMsg) + '&usernames=jacek', null)
                                     fos.sendRequest('system.library/user/servermessage', 'sessionid=' + ent.SessionID + '&message=' + encodeURIComponent(inviteMsg) + '&usernames=jacek', null)
-                                }
+				}
                             }
                         }
 
@@ -815,7 +816,7 @@ module.exports = class SASManager {
         console.log("[unshare]: " + usersProm);
         usersProm.then((resp) => {
 
-            if (resp.length <= 0 || resp.ID == undefined) // response do not contain ID so it means that user was not found
+            if (resp.length <= 0 ) //|| resp.ID == undefined) // response do not contain ID so it means that user was not found
             {
                 con.sendUTF("{'response':'permission denied','code':''}");
                 return;
@@ -828,7 +829,7 @@ module.exports = class SASManager {
 
                 resp += users;
 
-                var sasFromList = getSAS(sasid);
+                var sasFromList = this.getSAS(sasid);
                 if (sasFromList != null) {
                     // if users provided then remove only this people otherwise remove all
 
@@ -934,14 +935,14 @@ module.exports = class SASManager {
         console.log("[send]: " + usersProm);
         usersProm.then((resp) => {
 
-            if (resp.length <= 0 || resp.ID == undefined) // response do not contain ID so it means that user was not found
+            if (resp.length <= 0 ) //|| resp.ID == undefined) // response do not contain ID so it means that user was not found
             {
                 con.sendUTF("{'response':'permission denied','code':''}");
                 return;
             }
 
             if (sasid != null) {
-                var sasFromList = getSAS(sasid);
+                var sasFromList = this.getSAS(sasid);
 
                 console.log("[send]: " + sasid + " sasfromlist " + sasFromList + " usernames " + usernames);
 
@@ -1051,14 +1052,14 @@ module.exports = class SASManager {
         console.log("[sendowner]: " + usersProm);
         usersProm.then((resp) => {
 
-            if (resp.length <= 0 || resp.ID == undefined) // response do not contain ID so it means that user was not found
+            if (resp.length <= 0 ) //|| resp.ID == undefined) // response do not contain ID so it means that user was not found
             {
                 con.sendUTF("{'response':'permission denied','code':''}");
                 return;
             }
 
             if (sasid != null) {
-                var sasFromList = getSAS(sasid);
+                var sasFromList = this.getSAS(sasid);
 
                 console.log("[sendowner] " + sasid + " sasfromlist " + sasFromList);
 
@@ -1121,14 +1122,14 @@ module.exports = class SASManager {
         console.log("[putvar]: " + usersProm);
         usersProm.then((resp) => {
 
-            if (resp.length <= 0 || resp.ID == undefined) // response do not contain ID so it means that user was not found
+            if (resp.length <= 0 ) //|| resp.ID == undefined) // response do not contain ID so it means that user was not found
             {
                 con.sendUTF("{'response':'permission denied','code':''}");
                 return;
             }
 
             if (sasid != null) {
-                var sasFromList = getSAS(sasid);
+                var sasFromList = this.getSAS(sasid);
                 if (sasFromList != null) {
                     console.log("[putvar]: sas found");
                     sasFromList.putVariable(valid, val);
@@ -1161,14 +1162,14 @@ module.exports = class SASManager {
         console.log("[getvar]: " + usersProm);
         usersProm.then((resp) => {
 
-            if (resp.length <= 0 || resp.ID == undefined) // response do not contain ID so it means that user was not found
+            if (resp.length <= 0 ) //|| resp.ID == undefined) // response do not contain ID so it means that user was not found
             {
                 con.sendUTF("{'response':'permission denied','code':''}");
                 return;
             }
 
             if (sasid != null) {
-                var sasFromList = getSAS(sasid);
+                var sasFromList = this.getSAS(sasid);
                 var retVal = null;
 
                 console.log("[getvar] was sas found " + sasFromList + " for sasid " + sasid + " sasmape entries " + this.sasMap.length);
