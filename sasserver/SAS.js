@@ -172,6 +172,14 @@ module.exports = class SAS {
     getCreationTime() {
         return this.timeCreate;
     }
+    
+    //
+    // Get last time used
+    //
+
+    getTimeLastUsed() {
+        return this.timeLastUsed;
+    }
 
     //
     // Update time when SAS was used

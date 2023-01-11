@@ -21,7 +21,7 @@ var mysql = require('promise-mysql2');
 const Database = require('./Database.js');
 const UserSession = require('./UserSession.js');
 const friendos = require('./friendos.js');
-//const schedule = require('node-schedule');
+const cron = require('node-cron');
 
 let globalAuthid = '5d0e8579f3dec0477449c1d004f3c089';
 
@@ -42,6 +42,9 @@ module.exports = class SASManager {
         this.sasMap = new Map();
 
         // clean not used sas from time to time
+        
+        cron.schedule('0 17 ? * 0,4-6', () => cleanSAS( this ) );
+        console.log(`Scheduler activated: ${new Date()}`);
 
         //const job = schedule.scheduleJob(this, '0 17 ? * 0,4-6', function() {
         //    console.log('Clean SAS');
@@ -54,8 +57,24 @@ module.exports = class SASManager {
       Clean SAS
     */
 
-    cleanSAS() {
-
+    cleanSAS( let sasm ) {
+        var = currTime = Math.floor(Date.now() / 1000);
+        let toDeleteIDList = new List();
+    
+        // we have to go through SAS and remove old entries from DB
+        
+        for (var sas in sasm.sasMap )
+        {
+            if( ( currTime - sas.getTimeLastUsed() ) > (60*60*4) )  // 4 hours
+            {
+                toDeleteIDList.add( sas.getID() ); 
+            }
+        }
+        
+        for (var sasid in toDeleteIDList )
+        {
+            sasm.removeSAS( sasid );
+        }
     }
 
     /**
@@ -1216,5 +1235,15 @@ module.exports = class SASManager {
     putSAS( newsas, id )
     {
         this.sasMap.add(newsas, id); 
-    } 
+    }
+    
+    /*
+    * Remove SAS from map
+    * @param id - id of entry which will be deleted
+    */
+    
+    removeSAS( id )
+    {
+        this.sasMap.remove( id );
+    }
 }
