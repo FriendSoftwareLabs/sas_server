@@ -43,7 +43,8 @@ module.exports = class SASManager {
 
         // clean not used sas from time to time
         
-        cron.schedule('0 17 ? * 0,4-6', () => cleanSAS( this ) );
+	cron.schedule('0 0 */12 * * *', () => cleanSAS( this ) );
+        //cron.schedule('0 17 ? * 0,4-6', () => cleanSAS( this ) );
         console.log(`Scheduler activated: ${new Date()}`);
 
         //const job = schedule.scheduleJob(this, '0 17 ? * 0,4-6', function() {
@@ -57,8 +58,8 @@ module.exports = class SASManager {
       Clean SAS
     */
 
-    cleanSAS( let sasm ) {
-        var = currTime = Math.floor(Date.now() / 1000);
+    cleanSAS( sasm ) {
+        var currTime = Math.floor(Date.now() / 1000);
         let toDeleteIDList = new List();
     
         // we have to go through SAS and remove old entries from DB
