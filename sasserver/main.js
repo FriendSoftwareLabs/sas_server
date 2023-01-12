@@ -44,7 +44,7 @@ class Main {
         let hash = crypto.createHash('md5').update(macs.toString()).digest("hex");
         SERVER_ID = hash;
 
-        this.SASManager = new SASManager(SERVER_ID);
+        this.SASManager = new SASManager(SERVER_ID, dbcon);
         this.Databae = new Database(db);
 
         //

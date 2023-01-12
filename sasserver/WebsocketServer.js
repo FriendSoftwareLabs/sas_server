@@ -22,7 +22,7 @@ var SASManager;
 var dbcon;
 
 module.exports = class WebsocketServer {
-    constructor(mainclass) {
+    constructor( mainclass ) {
         process.title = 'sas'; // Port where we'll run the websocket server
         this.webSocketsServerPort = mainclass.websocketport; // websocket and http servers
         this.webSocketServer = require('websocket').server;

@@ -116,11 +116,11 @@ CREATE TABLE IF NOT EXISTS `FSASSession` (
      }
 
      //
-	  // Update Sessions
-	  //
+	 // Update Sessions
+	 //
 
-	  static updateSessionsInSASServer( id, add ) 
-    {
+	 static updateSessionsInSASServer( id, add ) 
+     {
       return new Promise(async (resolve) => 
       {
         console.log('updateSessionsInSASServer '+ id );
@@ -142,6 +142,40 @@ CREATE TABLE IF NOT EXISTS `FSASSession` (
           const maxEntries = data.length - 1;
 
           console.log('updateSessionsInSASServer: ' + data);
+
+          var retData = [{}];
+
+          return resolve(retData);	// data
+        }
+        catch (err) 
+        {
+          console.error(err);
+          return resolve(null);
+        }
+      });
+    }
+    
+    //
+	 // Remove old SAS Sessions
+	 //
+
+	 static removeOldSASS( saslist ) 
+     {
+      return new Promise(async (resolve) => 
+      {
+        console.log('removeOldSASS '+ id );
+        try
+        {
+          let sql = "";
+
+          sql = "DELETE from FSASSession WHERE ID in('" + saslist +"');" ;
+
+          //sql += ' us.SessionID= ? limit 1';
+          //console.log('Looking for Data : ' + database );
+          const data = await database.query(sql);
+          const maxEntries = data.length - 1;
+
+          console.log('removeOldSASS: ' + data);
 
           var retData = [{}];
 
